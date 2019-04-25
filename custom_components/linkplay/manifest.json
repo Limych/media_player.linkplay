@@ -1,0 +1,12 @@
+{
+  "domain": "linkplay",
+  "name": "Home Assistant LinkPlay devices integration",
+  "documentation": "https://github.com/Limych/media_player.linkplay",
+  "requirements": [
+    "eyeD3==0.8.7",
+    "uPnPClient==0.0.8",
+    "validators==0.12.3"
+  ],
+  "dependencies": [],
+  "codeowners": ["@nicjo814"]
+}
