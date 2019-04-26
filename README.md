@@ -2,8 +2,9 @@
 
 # LinkPlay devices integration for Home Assistant
 
-[… … … This is just skeleton for now, sorry]
+This component allows you to integrate control of audio devices based on LinkPlay platform into your Home Assistant smart home system.
 
+LinkPlay platform makes it easy to create a variety of modern audio systems. There are already quite a few manufacturers and devices that operate on the basis of LinkPlay. Here are just some of the firms and devices:
 **August** (WS300G),
 **Auna** (Intelligence Tube),
 **Bauhn** (SoundMax 5),
