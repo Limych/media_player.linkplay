@@ -62,6 +62,7 @@ LinkPlay platform makes it easy to create a variety of modern audio systems. The
 **Uyesee** (AM160),
 **Youzhuan** (Intelligent Music Ceiling),
 **Zolo Audio** (Holo),
+etc.
 
 I also suggest you [visit the support topic](https://community.home-assistant.io/t/linkplay-integration/33878) on the community forum.
 
@@ -91,7 +92,7 @@ I also suggest you [visit the support topic](https://community.home-assistant.io
     media_player:
       - platform: linkplay
         host: YOUR_IP_ADDRESS 
-        devicename: NAME_OF_DEVICE_AS_IN_OFFICIAL_APPLICATION 
+        device_name: NAME_OF_DEVICE_AS_IN_OFFICIAL_APPLICATION 
     ```
 
 ### Configuration Variables
@@ -99,12 +100,12 @@ I also suggest you [visit the support topic](https://community.home-assistant.io
 **host:**\
   *(string)* *(Required)* The host name or IP address of the device that is running Emby.
   
-**devicename:**\
+**device_name:**\
   *(string)* *(Required)* The name of the device, as it setted up in the official application.
 
 **name:**\
   *(string)* *(Optional)* Name to use in the frontend.\
-  *Default value: Identical to devicename value*
+  *Default value: Identical to device_name value*
 
 **lastfm_api_key:**\
   *(string)* *(Optional)* API key to LastFM service to get album covers.
