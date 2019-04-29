@@ -28,17 +28,21 @@ from homeassistant.const import (
     STATE_UNKNOWN)
 from homeassistant.util.dt import utcnow
 
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 
 _LOGGER = logging.getLogger(__name__)
 
 ATTR_MASTER = 'master_id'
 ATTR_PRESET = 'preset'
 ATTR_SLAVES = 'slave_ids'
+
 CONF_DEVICENAME = 'devicename'
 CONF_LASTFM_API_KEY = 'lastfm_api_key'
+
 DATA_LINKPLAY = 'linkplay'
+
 DEFAULT_NAME = 'LinkPlay device'
+
 LASTFM_API_BASE = "http://ws.audioscrobbler.com/2.0/?method="
 
 LINKPLAY_CONNECT_MULTIROOM_SCHEMA = MEDIA_PLAYER_SCHEMA.extend({

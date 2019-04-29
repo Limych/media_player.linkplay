@@ -2,7 +2,16 @@
 
 # LinkPlay devices integration for Home Assistant
 
+***Collaborators wanted!** This component was transferred to this repository to save from death as a result of moral obsolescence of the code. But now I don’t have the opportunity to fully support it and develop the code.*
+
+*If you can help with developing this component, I will be very grateful to you.  Please, message to me.*
+<p align="center">* * *</p>
+
 This component allows you to integrate control of audio devices based on LinkPlay platform into your Home Assistant smart home system.
+
+![](https://raw.githubusercontent.com/Limych/media_player.linkplay/master/docs/images/linkplay_logo.png)
+
+![](https://raw.githubusercontent.com/Limych/media_player.linkplay/master/docs/images/linkplay_devices.png)
 
 LinkPlay platform makes it easy to create a variety of modern audio systems. There are already quite a few manufacturers and devices that operate on the basis of LinkPlay. Here are just some of the firms and devices:
 **August** (WS300G),
@@ -74,16 +83,31 @@ I also suggest you [visit the support topic](https://community.home-assistant.io
     |       |-- etc...
     ```
 
-[… … … This is just skeleton for now, sorry]
+
+1. To add LinkPlay device to your installation, add the following to your `configuration.yaml` file:
+    
+    ```yaml
+    # Example configuration.yaml entry
+    media_player:
+      - platform: linkplay
+        host: YOUR_IP_ADDRESS 
+        devicename: NAME_OF_DEVICE_AS_IN_OFFICIAL_APPLICATION 
+    ```
 
 ### Configuration Variables
+  
+**host:**\
+  *(string)* *(Required)* The host name or IP address of the device that is running Emby.
+  
+**devicename:**\
+  *(string)* *(Required)* The name of the device, as it setted up in the official application.
 
-[… … … This is just skeleton for now, sorry]
-  
-**entities:**\
-  *(list)* *(Required)* A list of temperature sensor entity IDs.
-  
-  *NB* You can use weather provider entity as a data source.  
+**name:**\
+  *(string)* *(Optional)* Name to use in the frontend.\
+  *Default value: Identical to devicename value*
+
+**lastfm_api_key:**\
+  *(string)* *(Optional)* API key to LastFM service to get album covers.
 
 ## Track updates
 
