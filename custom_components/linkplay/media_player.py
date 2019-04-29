@@ -28,17 +28,21 @@ from homeassistant.const import (
     STATE_UNKNOWN)
 from homeassistant.util.dt import utcnow
 
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 
 _LOGGER = logging.getLogger(__name__)
 
 ATTR_MASTER = 'master_id'
 ATTR_PRESET = 'preset'
 ATTR_SLAVES = 'slave_ids'
+
 CONF_DEVICENAME = 'devicename'
 CONF_LASTFM_API_KEY = 'lastfm_api_key'
+
 DATA_LINKPLAY = 'linkplay'
+
 DEFAULT_NAME = 'LinkPlay device'
+
 LASTFM_API_BASE = "http://ws.audioscrobbler.com/2.0/?method="
 
 LINKPLAY_CONNECT_MULTIROOM_SCHEMA = MEDIA_PLAYER_SCHEMA.extend({
@@ -580,20 +584,27 @@ class LinkPlayDevice(MediaPlayerDevice):
         """Update track info via UPNP."""
         import validators
 
+        self._media_title = None
+        self._media_album = None
+        self._media_image_url = None
+
         if self._upnp_device is None:
-            self._media_title = None
-            self._media_album = None
-            self._media_image_url = None
             return
 
         media_info = self._upnp_device.AVTransport.GetMediaInfo(InstanceID=0)
         media_info = media_info.get('CurrentURIMetaData')
+
+        if media_info is None:
+            return
+
         xml_tree = ET.fromstring(media_info)
+
         xml_path = "{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}item/"
         title_xml_path = "{http://purl.org/dc/elements/1.1/}title"
         artist_xml_path = "{urn:schemas-upnp-org:metadata-1-0/upnp/}artist"
         album_xml_path = "{urn:schemas-upnp-org:metadata-1-0/upnp/}album"
         image_xml_path = "{urn:schemas-upnp-org:metadata-1-0/upnp/}albumArtURI"
+
         self._media_title = \
             xml_tree.find("{0}{1}".format(xml_path, title_xml_path)).text
         self._media_artist = \

@@ -2,7 +2,66 @@
 
 # LinkPlay devices integration for Home Assistant
 
-[… … … This is just skeleton for now, sorry]
+***Collaborators wanted!** This component was transferred to this repository to save from death as a result of moral obsolescence of the code. But now I don’t have the opportunity to fully support it and develop the code.*
+
+*If you can help with developing this component, I will be very grateful to you.  Please, message to me.*
+<p align="center">* * *</p>
+
+This component allows you to integrate control of audio devices based on LinkPlay platform into your Home Assistant smart home system.
+
+![](https://raw.githubusercontent.com/Limych/media_player.linkplay/master/docs/images/linkplay_logo.png)
+
+![](https://raw.githubusercontent.com/Limych/media_player.linkplay/master/docs/images/linkplay_devices.png)
+
+LinkPlay platform makes it easy to create a variety of modern audio systems. There are already quite a few manufacturers and devices that operate on the basis of LinkPlay. Here are just some of the firms and devices:
+**August** (WS300G),
+**Auna** (Intelligence Tube),
+**Bauhn** (SoundMax 5),
+**Bem** (Speaker Big Mo),
+**Centaurus** (Flyears),
+**Champion** (AWF320),
+**COWIN** (DiDa, Thunder),
+**Crystal Acoustics** (Crystal Audio),
+**CVTE** (FD2140),
+**Dayton Audio** (AERO),
+**DOSS** (Deshi, Soundbox Mini, DOSS Assistant, Cloud Fox A1),
+**DYON** (DYON Area Player),
+**Edifier** (MA1),
+**Energy Sistem** (Multiroom Tower Wi-Fi, Multiroom Portable Wi-Fi),
+**FABRIQ** (Chorus, Riff),
+**First Alert** (Onelink Safe & Sound),
+**GE Sol** (C),
+**GGMM** (E5 Wireless, E3 Wireless),
+**GIEC** (Hi-Fi Smart Sound S1),
+**Harman Kardon** (Allure),
+**Hyundai** (Modern Oxygen Bar),
+**iDeaUSA** (iDEaHome, Home Speaker, Mini Home Soundbar),
+**iEast** (SoundStream, Stream Pro, StreamAmp AM160, StreamAmp i50B)
+**iHome** (iAVS16),
+**iLive** (Concierge, Platinum),
+**iLuv** (Aud Air, Aud Click Shower, Aud Click),
+**JAM Audio** (Voice, Symphony, Rhythm),
+**JD** (CrazyBoa 2Face),
+**Lowes** (Showbox),
+**Magnavox** (MSH315V),
+**Medion** (MD43631, MedionX MD43259),
+**Meidong** (Meidong 3119),
+**MK** (MK Alexa Speaker),
+**MÜZO** (Cobblestone),
+**Naxa** (NAS-5003, NHS-5002, NAS-5001, NAS-5000),
+**Nexum** (Memo),
+**Omaker** (WoW),
+**Omars** (Dogo),
+**Polaroid** (PWF1001),
+**Sharper Image** (SWF1002),
+**Shenzhen Renqing Technology Ltd** (ROCKLAVA),
+**SoundBot** (SB600),
+**SoundLogic** (Buddy),
+**Tibo** (Choros Tap),
+**Tinman** (Smart JOJO),
+**Uyesee** (AM160),
+**Youzhuan** (Intelligent Music Ceiling),
+**Zolo Audio** (Holo),
 
 I also suggest you [visit the support topic](https://community.home-assistant.io/t/linkplay-integration/33878) on the community forum.
 
@@ -18,22 +77,37 @@ I also suggest you [visit the support topic](https://community.home-assistant.io
     ```
     <config_dir>/
     |-- custom_components/
-    |   |-- media_player.linkplay/
+    |   |-- linkplay/
     |       |-- __init__.py
     |       |-- manifest.json
     |       |-- etc...
     ```
 
-[… … … This is just skeleton for now, sorry]
+
+1. To add LinkPlay device to your installation, add the following to your `configuration.yaml` file:
+    
+    ```yaml
+    # Example configuration.yaml entry
+    media_player:
+      - platform: linkplay
+        host: YOUR_IP_ADDRESS 
+        devicename: NAME_OF_DEVICE_AS_IN_OFFICIAL_APPLICATION 
+    ```
 
 ### Configuration Variables
+  
+**host:**\
+  *(string)* *(Required)* The host name or IP address of the device that is running Emby.
+  
+**devicename:**\
+  *(string)* *(Required)* The name of the device, as it setted up in the official application.
 
-[… … … This is just skeleton for now, sorry]
-  
-**entities:**\
-  *(list)* *(Required)* A list of temperature sensor entity IDs.
-  
-  *NB* You can use weather provider entity as a data source.  
+**name:**\
+  *(string)* *(Optional)* Name to use in the frontend.\
+  *Default value: Identical to devicename value*
+
+**lastfm_api_key:**\
+  *(string)* *(Optional)* API key to LastFM service to get album covers.
 
 ## Track updates
 
