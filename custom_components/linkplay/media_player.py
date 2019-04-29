@@ -28,7 +28,7 @@ from homeassistant.const import (
     STATE_UNKNOWN)
 from homeassistant.util.dt import utcnow
 
-VERSION = "1.0.1"
+VERSION = "2.0.0"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,8 +36,10 @@ ATTR_MASTER = 'master_id'
 ATTR_PRESET = 'preset'
 ATTR_SLAVES = 'slave_ids'
 
-CONF_DEVICENAME = 'devicename'
+CONF_DEVICE_NAME = 'device_name'
 CONF_LASTFM_API_KEY = 'lastfm_api_key'
+#
+CONF_DEVICENAME_DEPRECATED = 'devicename'  # TODO: Remove this deprecated key in version 3.0
 
 DATA_LINKPLAY = 'linkplay'
 
@@ -60,12 +62,25 @@ LINKPLAY_REMOVE_SLAVES_SCHEMA = MEDIA_PLAYER_SCHEMA.extend({
 
 MAX_VOL = 100
 
-PLATFORM_SCHEMA = cv.PLATFORM_SCHEMA.extend({
+
+def check_device_name_keys(conf):  # TODO: Remove this check in version 3.0
+    """Ensure CONF_DEVICE_NAME or CONF_DEVICENAME_DEPRECATED are provided."""
+    if sum(param in conf for param in [CONF_DEVICE_NAME, CONF_DEVICENAME_DEPRECATED]) != 1:
+        raise vol.Invalid(CONF_DEVICE_NAME + ' key not provided')
+    if CONF_DEVICENAME_DEPRECATED in conf:
+        _LOGGER.warning("Key %s is deprecated. Please replace it to key %s",
+                        CONF_DEVICENAME_DEPRECATED, CONF_DEVICE_NAME)
+    return conf
+
+
+PLATFORM_SCHEMA = vol.All(cv.PLATFORM_SCHEMA.extend({
     vol.Required(CONF_HOST): cv.string,
-    vol.Required(CONF_DEVICENAME): cv.string,
+    vol.Optional(CONF_DEVICE_NAME): cv.string,  # TODO: Mark required in version 3.0
     vol.Optional(CONF_NAME): cv.string,
-    vol.Optional(CONF_LASTFM_API_KEY): cv.string
-})
+    vol.Optional(CONF_LASTFM_API_KEY): cv.string,
+    #
+    vol.Optional(CONF_DEVICENAME_DEPRECATED): cv.string
+}), check_device_name_keys)
 
 SERVICE_CONNECT_MULTIROOM = 'linkplay_connect_multiroom'
 SERVICE_PRESET_BUTTON = 'linkplay_preset_button'
@@ -129,7 +144,8 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
             DOMAIN, service, _service_handler, schema=schema)
 
     linkplay = LinkPlayDevice(config.get(CONF_HOST),
-                              config.get(CONF_DEVICENAME),
+                              config.get(CONF_DEVICE_NAME,
+                                         config.get(CONF_DEVICENAME_DEPRECATED)),
                               config.get(CONF_NAME),
                               config.get(CONF_LASTFM_API_KEY))
 
@@ -289,6 +305,10 @@ class LinkPlayDevice(MediaPlayerDevice):
         """Device API."""
         return self._lpapi
 
+    def turn_on(self):
+        """Turn the media player on."""
+        pass
+
     def turn_off(self):
         """Turn off media player."""
         self._lpapi.call('GET', 'getShutdown')
@@ -357,7 +377,7 @@ class LinkPlayDevice(MediaPlayerDevice):
             self._master.media_play()
 
     def media_pause(self):
-        """Send play command."""
+        """Send pause command."""
         if not self._slave_mode:
             self._lpapi.call('GET', 'setPlayerCmd:pause')
             value = self._lpapi.data
@@ -370,6 +390,9 @@ class LinkPlayDevice(MediaPlayerDevice):
                                 value)
         else:
             self._master.media_pause()
+
+    """Send stop command."""
+    media_stop = media_pause
 
     def media_next_track(self):
         """Send next track command."""
@@ -404,6 +427,10 @@ class LinkPlayDevice(MediaPlayerDevice):
                                 value)
         else:
             self._master.media_seek(position)
+
+    def clear_playlist(self):
+        """Clear players playlist."""
+        pass
 
     def play_media(self, media_type, media_id, **kwargs):
         """Play media from a URL or file."""
@@ -733,7 +760,7 @@ class LinkPlayDevice(MediaPlayerDevice):
         else:
             _LOGGER.warning("JSON result was not a dictionary")
 
-        # Get  multiroom slave information
+        # Get multiroom slave information
         self._lpapi.call('GET', 'multiroom:getSlaveList')
         slave_list = self._lpapi.data
 
@@ -748,8 +775,7 @@ class LinkPlayDevice(MediaPlayerDevice):
             if int(slave_list['slaves']) > 0:
                 slave_list = slave_list['slave_list']
                 for slave in slave_list:
-                    device = self.hass.data[DATA_LINKPLAY].get(slave['name'],
-                                                               None)
+                    device = self.hass.data[DATA_LINKPLAY].get(slave['name'], None)
                     if device:
                         self._slave_list.append(device)
                         device.set_master(self)
