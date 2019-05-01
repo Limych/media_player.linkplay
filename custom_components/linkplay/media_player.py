@@ -391,8 +391,9 @@ class LinkPlayDevice(MediaPlayerDevice):
         else:
             self._master.media_pause()
 
-    """Send stop command."""
-    media_stop = media_pause
+    def media_stop(self):
+        """Send stop command."""
+        self.media_pause()
 
     def media_next_track(self):
         """Send next track command."""
