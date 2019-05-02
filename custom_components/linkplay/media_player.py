@@ -717,6 +717,8 @@ class LinkPlayDevice(MediaPlayerDevice):
             except ValueError:
                 _LOGGER.warning("REST result could not be parsed as JSON")
                 _LOGGER.debug("Erroneous JSON: %s", device_api_result)
+                device_status = None
+
             if isinstance(device_status, dict):
                 self._wifi_channel = device_status['WifiChannel']
                 self._ssid = \
@@ -770,6 +772,7 @@ class LinkPlayDevice(MediaPlayerDevice):
         except ValueError:
             _LOGGER.warning("REST result could not be parsed as JSON")
             _LOGGER.debug("Erroneous JSON: %s", slave_list)
+            slave_list = None
 
         self._slave_list = []
         if isinstance(slave_list, dict):
