@@ -102,6 +102,8 @@ I also suggest you [visit the support topic](https://community.home-assistant.io
   
 **device_name:**\
   *(string)* *(Required)* The name of the device, as it setted up in the official application.
+  
+  *NB* Please note that variable `devicename` is deprecated and will be deleted soon. Please replace it by variable `device_name`.
 
 **name:**\
   *(string)* *(Optional)* Name to use in the frontend.\
