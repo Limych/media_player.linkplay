@@ -62,6 +62,7 @@ LinkPlay platform makes it easy to create a variety of modern audio systems. The
 **Uyesee** (AM160),
 **Youzhuan** (Intelligent Music Ceiling),
 **Zolo Audio** (Holo),
+etc.
 
 I also suggest you [visit the support topic](https://community.home-assistant.io/t/linkplay-integration/33878) on the community forum.
 
@@ -104,7 +105,7 @@ I also suggest you [visit the support topic](https://community.home-assistant.io
 
 **name:**\
   *(string)* *(Optional)* Name to use in the frontend.\
-  *Default value: Identical to devicename value*
+  *Default value: Identical to device_name value*
 
 **lastfm_api_key:**\
   *(string)* *(Optional)* API key to LastFM service to get album covers.

@@ -22,13 +22,13 @@ from homeassistant.components.media_player.const import (
     DOMAIN, MEDIA_TYPE_MUSIC, SUPPORT_NEXT_TRACK, SUPPORT_PAUSE, SUPPORT_PLAY,
     SUPPORT_PLAY_MEDIA, SUPPORT_PREVIOUS_TRACK, SUPPORT_SEEK,
     SUPPORT_SELECT_SOUND_MODE, SUPPORT_SELECT_SOURCE, SUPPORT_SHUFFLE_SET,
-    SUPPORT_VOLUME_MUTE, SUPPORT_VOLUME_SET)
+    SUPPORT_VOLUME_MUTE, SUPPORT_VOLUME_SET, SUPPORT_STOP)
 from homeassistant.const import (
     ATTR_ENTITY_ID, CONF_HOST, CONF_NAME, STATE_PAUSED, STATE_PLAYING,
     STATE_UNKNOWN)
 from homeassistant.util.dt import utcnow
 
-VERSION = "1.0.1"
+VERSION = "1.1.0"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,8 +36,10 @@ ATTR_MASTER = 'master_id'
 ATTR_PRESET = 'preset'
 ATTR_SLAVES = 'slave_ids'
 
-CONF_DEVICENAME = 'devicename'
+CONF_DEVICE_NAME = 'device_name'
 CONF_LASTFM_API_KEY = 'lastfm_api_key'
+#
+CONF_DEVICENAME_DEPRECATED = 'devicename'  # TODO: Remove this deprecated key in version 3.0
 
 DATA_LINKPLAY = 'linkplay'
 
@@ -60,12 +62,25 @@ LINKPLAY_REMOVE_SLAVES_SCHEMA = MEDIA_PLAYER_SCHEMA.extend({
 
 MAX_VOL = 100
 
-PLATFORM_SCHEMA = cv.PLATFORM_SCHEMA.extend({
+
+def check_device_name_keys(conf):  # TODO: Remove this check in version 3.0
+    """Ensure CONF_DEVICE_NAME or CONF_DEVICENAME_DEPRECATED are provided."""
+    if sum(param in conf for param in [CONF_DEVICE_NAME, CONF_DEVICENAME_DEPRECATED]) != 1:
+        raise vol.Invalid(CONF_DEVICE_NAME + ' key not provided')
+    # if CONF_DEVICENAME_DEPRECATED in conf:    # TODO: Uncomment block in version 2.0
+    #     _LOGGER.warning("Key %s is deprecated. Please replace it with key %s",
+    #                     CONF_DEVICENAME_DEPRECATED, CONF_DEVICE_NAME)
+    return conf
+
+
+PLATFORM_SCHEMA = vol.All(cv.PLATFORM_SCHEMA.extend({
     vol.Required(CONF_HOST): cv.string,
-    vol.Required(CONF_DEVICENAME): cv.string,
+    vol.Optional(CONF_DEVICE_NAME): cv.string,  # TODO: Mark required in version 3.0
     vol.Optional(CONF_NAME): cv.string,
-    vol.Optional(CONF_LASTFM_API_KEY): cv.string
-})
+    vol.Optional(CONF_LASTFM_API_KEY): cv.string,
+    #
+    vol.Optional(CONF_DEVICENAME_DEPRECATED): cv.string
+}), check_device_name_keys)
 
 SERVICE_CONNECT_MULTIROOM = 'linkplay_connect_multiroom'
 SERVICE_PRESET_BUTTON = 'linkplay_preset_button'
@@ -86,7 +101,7 @@ SERVICE_TO_METHOD = {
 SUPPORT_LINKPLAY = SUPPORT_SELECT_SOURCE | SUPPORT_SELECT_SOUND_MODE | \
                    SUPPORT_SHUFFLE_SET | SUPPORT_VOLUME_SET | SUPPORT_VOLUME_MUTE
 
-SUPPORT_MEDIA_MODES_WIFI = SUPPORT_NEXT_TRACK | SUPPORT_PAUSE | \
+SUPPORT_MEDIA_MODES_WIFI = SUPPORT_NEXT_TRACK | SUPPORT_PAUSE | SUPPORT_STOP | \
                            SUPPORT_PLAY | SUPPORT_SEEK | SUPPORT_PREVIOUS_TRACK | SUPPORT_SEEK | \
                            SUPPORT_PLAY_MEDIA
 
@@ -128,13 +143,15 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
         hass.services.register(
             DOMAIN, service, _service_handler, schema=schema)
 
+    dev_name = config.get(CONF_DEVICE_NAME,
+                          config.get(CONF_DEVICENAME_DEPRECATED))
     linkplay = LinkPlayDevice(config.get(CONF_HOST),
-                              config.get(CONF_DEVICENAME),
+                              dev_name,
                               config.get(CONF_NAME),
                               config.get(CONF_LASTFM_API_KEY))
 
     add_entities([linkplay])
-    hass.data[DATA_LINKPLAY][config.get(CONF_NAME)] = linkplay
+    hass.data[DATA_LINKPLAY][dev_name] = linkplay
 
 
 class LinkPlayDevice(MediaPlayerDevice):
@@ -289,6 +306,10 @@ class LinkPlayDevice(MediaPlayerDevice):
         """Device API."""
         return self._lpapi
 
+    def turn_on(self):
+        """Turn the media player on."""
+        _LOGGER.warning("This device cannot be turned on remotely.")
+
     def turn_off(self):
         """Turn off media player."""
         self._lpapi.call('GET', 'getShutdown')
@@ -357,7 +378,7 @@ class LinkPlayDevice(MediaPlayerDevice):
             self._master.media_play()
 
     def media_pause(self):
-        """Send play command."""
+        """Send pause command."""
         if not self._slave_mode:
             self._lpapi.call('GET', 'setPlayerCmd:pause')
             value = self._lpapi.data
@@ -370,6 +391,10 @@ class LinkPlayDevice(MediaPlayerDevice):
                                 value)
         else:
             self._master.media_pause()
+
+    def media_stop(self):
+        """Send stop command."""
+        self.media_pause()
 
     def media_next_track(self):
         """Send next track command."""
@@ -404,6 +429,10 @@ class LinkPlayDevice(MediaPlayerDevice):
                                 value)
         else:
             self._master.media_seek(position)
+
+    def clear_playlist(self):
+        """Clear players playlist."""
+        pass
 
     def play_media(self, media_type, media_id, **kwargs):
         """Play media from a URL or file."""
@@ -671,6 +700,7 @@ class LinkPlayDevice(MediaPlayerDevice):
         player_api_result = self._lpapi.data
 
         if player_api_result is None:
+            _LOGGER.warning('Unable to connect to device')
             self._media_title = 'Unable to connect to device'
             return True
 
@@ -689,6 +719,8 @@ class LinkPlayDevice(MediaPlayerDevice):
             except ValueError:
                 _LOGGER.warning("REST result could not be parsed as JSON")
                 _LOGGER.debug("Erroneous JSON: %s", device_api_result)
+                device_status = None
+
             if isinstance(device_status, dict):
                 self._wifi_channel = device_status['WifiChannel']
                 self._ssid = \
@@ -733,7 +765,7 @@ class LinkPlayDevice(MediaPlayerDevice):
         else:
             _LOGGER.warning("JSON result was not a dictionary")
 
-        # Get  multiroom slave information
+        # Get multiroom slave information
         self._lpapi.call('GET', 'multiroom:getSlaveList')
         slave_list = self._lpapi.data
 
@@ -742,14 +774,13 @@ class LinkPlayDevice(MediaPlayerDevice):
         except ValueError:
             _LOGGER.warning("REST result could not be parsed as JSON")
             _LOGGER.debug("Erroneous JSON: %s", slave_list)
+            slave_list = None
 
         self._slave_list = []
         if isinstance(slave_list, dict):
             if int(slave_list['slaves']) > 0:
-                slave_list = slave_list['slave_list']
-                for slave in slave_list:
-                    device = self.hass.data[DATA_LINKPLAY].get(slave['name'],
-                                                               None)
+                for slave in slave_list['slave_list']:
+                    device = self.hass.data[DATA_LINKPLAY].get(slave['name'])
                     if device:
                         self._slave_list.append(device)
                         device.set_master(self)
