@@ -92,7 +92,7 @@ I also suggest you [visit the support topic](https://community.home-assistant.io
     media_player:
       - platform: linkplay
         host: YOUR_IP_ADDRESS 
-        device_name: NAME_OF_DEVICE_AS_IN_OFFICIAL_APPLICATION 
+        devicename: NAME_OF_DEVICE_AS_IN_OFFICIAL_APPLICATION 
     ```
 
 ### Configuration Variables
@@ -100,10 +100,8 @@ I also suggest you [visit the support topic](https://community.home-assistant.io
 **host:**\
   *(string)* *(Required)* The host name or IP address of the device that is running Emby.
   
-**device_name:**\
+**devicename:**\
   *(string)* *(Required)* The name of the device, as it setted up in the official application.
-  
-  *NB* Please note that variable `devicename` is deprecated and will be deleted soon. Please replace it by variable `device_name`.
 
 **name:**\
   *(string)* *(Optional)* Name to use in the frontend.\

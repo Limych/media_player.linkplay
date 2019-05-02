@@ -22,13 +22,13 @@ from homeassistant.components.media_player.const import (
     DOMAIN, MEDIA_TYPE_MUSIC, SUPPORT_NEXT_TRACK, SUPPORT_PAUSE, SUPPORT_PLAY,
     SUPPORT_PLAY_MEDIA, SUPPORT_PREVIOUS_TRACK, SUPPORT_SEEK,
     SUPPORT_SELECT_SOUND_MODE, SUPPORT_SELECT_SOURCE, SUPPORT_SHUFFLE_SET,
-    SUPPORT_VOLUME_MUTE, SUPPORT_VOLUME_SET)
+    SUPPORT_VOLUME_MUTE, SUPPORT_VOLUME_SET, SUPPORT_STOP)
 from homeassistant.const import (
     ATTR_ENTITY_ID, CONF_HOST, CONF_NAME, STATE_PAUSED, STATE_PLAYING,
     STATE_UNKNOWN)
 from homeassistant.util.dt import utcnow
 
-VERSION = "2.0.0"
+VERSION = "1.1.0"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -67,9 +67,9 @@ def check_device_name_keys(conf):  # TODO: Remove this check in version 3.0
     """Ensure CONF_DEVICE_NAME or CONF_DEVICENAME_DEPRECATED are provided."""
     if sum(param in conf for param in [CONF_DEVICE_NAME, CONF_DEVICENAME_DEPRECATED]) != 1:
         raise vol.Invalid(CONF_DEVICE_NAME + ' key not provided')
-    if CONF_DEVICENAME_DEPRECATED in conf:
-        _LOGGER.warning("Key %s is deprecated. Please replace it to key %s",
-                        CONF_DEVICENAME_DEPRECATED, CONF_DEVICE_NAME)
+    # if CONF_DEVICENAME_DEPRECATED in conf:    # TODO: Uncomment block in version 2.0
+    #     _LOGGER.warning("Key %s is deprecated. Please replace it with key %s",
+    #                     CONF_DEVICENAME_DEPRECATED, CONF_DEVICE_NAME)
     return conf
 
 
@@ -101,7 +101,7 @@ SERVICE_TO_METHOD = {
 SUPPORT_LINKPLAY = SUPPORT_SELECT_SOURCE | SUPPORT_SELECT_SOUND_MODE | \
                    SUPPORT_SHUFFLE_SET | SUPPORT_VOLUME_SET | SUPPORT_VOLUME_MUTE
 
-SUPPORT_MEDIA_MODES_WIFI = SUPPORT_NEXT_TRACK | SUPPORT_PAUSE | \
+SUPPORT_MEDIA_MODES_WIFI = SUPPORT_NEXT_TRACK | SUPPORT_PAUSE | SUPPORT_STOP | \
                            SUPPORT_PLAY | SUPPORT_SEEK | SUPPORT_PREVIOUS_TRACK | SUPPORT_SEEK | \
                            SUPPORT_PLAY_MEDIA
 
@@ -143,14 +143,15 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
         hass.services.register(
             DOMAIN, service, _service_handler, schema=schema)
 
+    dev_name = config.get(CONF_DEVICE_NAME,
+                          config.get(CONF_DEVICENAME_DEPRECATED))
     linkplay = LinkPlayDevice(config.get(CONF_HOST),
-                              config.get(CONF_DEVICE_NAME,
-                                         config.get(CONF_DEVICENAME_DEPRECATED)),
+                              dev_name,
                               config.get(CONF_NAME),
                               config.get(CONF_LASTFM_API_KEY))
 
     add_entities([linkplay])
-    hass.data[DATA_LINKPLAY][config.get(CONF_NAME)] = linkplay
+    hass.data[DATA_LINKPLAY][dev_name] = linkplay
 
 
 class LinkPlayDevice(MediaPlayerDevice):
@@ -307,7 +308,7 @@ class LinkPlayDevice(MediaPlayerDevice):
 
     def turn_on(self):
         """Turn the media player on."""
-        pass
+        _LOGGER.warning("This device cannot be turned on remotely.")
 
     def turn_off(self):
         """Turn off media player."""
@@ -699,6 +700,7 @@ class LinkPlayDevice(MediaPlayerDevice):
         player_api_result = self._lpapi.data
 
         if player_api_result is None:
+            _LOGGER.warning('Unable to connect to device')
             self._media_title = 'Unable to connect to device'
             return True
 
@@ -777,9 +779,8 @@ class LinkPlayDevice(MediaPlayerDevice):
         self._slave_list = []
         if isinstance(slave_list, dict):
             if int(slave_list['slaves']) > 0:
-                slave_list = slave_list['slave_list']
-                for slave in slave_list:
-                    device = self.hass.data[DATA_LINKPLAY].get(slave['name'], None)
+                for slave in slave_list['slave_list']:
+                    device = self.hass.data[DATA_LINKPLAY].get(slave['name'])
                     if device:
                         self._slave_list.append(device)
                         device.set_master(self)
