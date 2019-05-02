@@ -105,7 +105,7 @@ I also suggest you [visit the support topic](https://community.home-assistant.io
 
 **name:**\
   *(string)* *(Optional)* Name to use in the frontend.\
-  *Default value: Identical to device_name value*
+  *Default value: Identical to devicename value*
 
 **lastfm_api_key:**\
   *(string)* *(Optional)* API key to LastFM service to get album covers.
