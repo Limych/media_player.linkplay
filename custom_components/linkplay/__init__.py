@@ -6,3 +6,5 @@ https://home-assistant.io/components/media_player.linkplay/
 """
 
 from .media_player import VERSION
+
+DOMAIN = 'linkplay'

@@ -2,14 +2,27 @@
   "domain": "linkplay",
   "name": "LinkPlay",
   "documentation": "https://github.com/Limych/media_player.linkplay",
+  "dependencies": [],
+  "config_flow": true,
+  "codeowners": [
+    "@nicjo814",
+    "@limych"
+  ],
   "requirements": [
     "eyeD3==0.8.7",
     "uPnPClient==0.0.8",
     "validators==0.12.3"
   ],
-  "dependencies": [],
-  "codeowners": [
-    "@nicjo814",
-    "@limych"
-  ]
+  "homeassistant": "0.88.0",
+  "ssdp": {
+    "st": [
+      "upnp:rootdevice"
+    ],
+    "manufacturer": [
+      "wiimu"
+    ],
+    "device_type": [
+      "urn:schemas-upnp-org:device:MediaRenderer:1"
+    ]
+  }
 }
