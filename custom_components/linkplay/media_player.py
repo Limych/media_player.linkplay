@@ -28,7 +28,7 @@ from homeassistant.const import (
     STATE_UNKNOWN)
 from homeassistant.util.dt import utcnow
 
-VERSION = "1.1.0"
+from . import VERSION, ISSUE_URL, DATA_LINKPLAY
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,8 +40,6 @@ CONF_DEVICE_NAME = 'device_name'
 CONF_LASTFM_API_KEY = 'lastfm_api_key'
 #
 CONF_DEVICENAME_DEPRECATED = 'devicename'  # TODO: Remove this deprecated key in version 3.0
-
-DATA_LINKPLAY = 'linkplay'
 
 DEFAULT_NAME = 'LinkPlay device'
 
@@ -65,7 +63,8 @@ MAX_VOL = 100
 
 def check_device_name_keys(conf):  # TODO: Remove this check in version 3.0
     """Ensure CONF_DEVICE_NAME or CONF_DEVICENAME_DEPRECATED are provided."""
-    if sum(param in conf for param in [CONF_DEVICE_NAME, CONF_DEVICENAME_DEPRECATED]) != 1:
+    if sum(param in conf for param in
+           [CONF_DEVICE_NAME, CONF_DEVICENAME_DEPRECATED]) != 1:
         raise vol.Invalid(CONF_DEVICE_NAME + ' key not provided')
     # if CONF_DEVICENAME_DEPRECATED in conf:    # TODO: Uncomment block in version 2.0
     #     _LOGGER.warning("Key %s is deprecated. Please replace it with key %s",
@@ -98,12 +97,13 @@ SERVICE_TO_METHOD = {
         'schema': LINKPLAY_REMOVE_SLAVES_SCHEMA}
 }
 
-SUPPORT_LINKPLAY = SUPPORT_SELECT_SOURCE | SUPPORT_SELECT_SOUND_MODE | \
-                   SUPPORT_SHUFFLE_SET | SUPPORT_VOLUME_SET | SUPPORT_VOLUME_MUTE
+SUPPORT_LINKPLAY = \
+    SUPPORT_SELECT_SOURCE | SUPPORT_SELECT_SOUND_MODE | SUPPORT_SHUFFLE_SET | \
+    SUPPORT_VOLUME_SET | SUPPORT_VOLUME_MUTE
 
-SUPPORT_MEDIA_MODES_WIFI = SUPPORT_NEXT_TRACK | SUPPORT_PAUSE | SUPPORT_STOP | \
-                           SUPPORT_PLAY | SUPPORT_SEEK | SUPPORT_PREVIOUS_TRACK | SUPPORT_SEEK | \
-                           SUPPORT_PLAY_MEDIA
+SUPPORT_MEDIA_MODES_WIFI = \
+    SUPPORT_NEXT_TRACK | SUPPORT_PAUSE | SUPPORT_STOP | SUPPORT_PLAY | \
+    SUPPORT_SEEK | SUPPORT_PREVIOUS_TRACK | SUPPORT_SEEK | SUPPORT_PLAY_MEDIA
 
 SOUND_MODES = {'0': 'Normal', '1': 'Classic', '2': 'Pop', '3': 'Jazz',
                '4': 'Vocal'}
@@ -116,6 +116,11 @@ UPNP_TIMEOUT = 5
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up the LinkPlay device."""
+    # Print startup message
+    _LOGGER.debug('Version %s', VERSION)
+    _LOGGER.info('If you have any issues with this you need to open an issue '
+                 'here: %s' % ISSUE_URL)
+
     if DATA_LINKPLAY not in hass.data:
         hass.data[DATA_LINKPLAY] = {}
 
@@ -649,6 +654,7 @@ class LinkPlayDevice(MediaPlayerDevice):
     def _update_from_id3(self):
         """Update track info with eyed3."""
         import eyed3
+        from urllib.error import URLError
         try:
             filename, header = urllib.request.urlretrieve(self._media_uri)
             audiofile = eyed3.load(filename)
@@ -659,7 +665,7 @@ class LinkPlayDevice(MediaPlayerDevice):
             if filename.startswith(tempfile.gettempdir()):
                 os.remove(filename)
 
-        except (urllib.error.URLError, ValueError):
+        except (URLError, ValueError):
             self._media_title = None
             self._media_artist = None
             self._media_album = None
@@ -693,7 +699,8 @@ class LinkPlayDevice(MediaPlayerDevice):
                             self._devicename:
                         self._upnp_device = upnpclient.Device(entry.location)
                         break
-                except (requests.exceptions.HTTPError, requests.exceptions.MissingSchema):
+                except (requests.exceptions.HTTPError,
+                        requests.exceptions.MissingSchema):
                     pass
 
         self._lpapi.call('GET', 'getPlayerStatus')

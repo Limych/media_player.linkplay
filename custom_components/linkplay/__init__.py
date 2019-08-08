@@ -5,4 +5,8 @@ For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/media_player.linkplay/
 """
 
-from .media_player import VERSION
+DOMAIN = 'linkplay'
+VERSION = "1.1.1"
+ISSUE_URL = "https://github.com/Limych/media_player.linkplay/issues"
+
+DATA_LINKPLAY = DOMAIN

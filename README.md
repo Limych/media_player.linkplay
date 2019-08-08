@@ -31,12 +31,11 @@ LinkPlay platform makes it easy to create a variety of modern audio systems. The
 **FABRIQ** (Chorus, Riff),
 **First Alert** (Onelink Safe & Sound),
 **GE Sol** (C),
-**GGMM** (E5 Wireless, E3 Wireless),
+**GGMM** (E2 Wireless, E3 Wireless, E5 Wireless),
 **GIEC** (Hi-Fi Smart Sound S1),
 **Harman Kardon** (Allure),
 **Hyundai** (Modern Oxygen Bar),
 **iDeaUSA** (iDEaHome, Home Speaker, Mini Home Soundbar),
-**iEast** (SoundStream, Stream Pro, StreamAmp AM160, StreamAmp i50B)
 **iHome** (iAVS16),
 **iLive** (Concierge, Platinum),
 **iLuv** (Aud Air, Aud Click Shower, Aud Click),
@@ -53,12 +52,16 @@ LinkPlay platform makes it easy to create a variety of modern audio systems. The
 **Omaker** (WoW),
 **Omars** (Dogo),
 **Polaroid** (PWF1001),
+**Roxcore**	(Roxcore),
 **Sharper Image** (SWF1002),
 **Shenzhen Renqing Technology Ltd** (ROCKLAVA),
+**Sonoé** (iEast SoundStream, iEast Stream Pro, iEast StreamAmp AM160, iEast StreamAmp i50B),
 **SoundBot** (SB600),
 **SoundLogic** (Buddy),
+**Stereoboommm** (MR200, MR300),
 **Tibo** (Choros Tap),
 **Tinman** (Smart JOJO),
+**Venz** (A501),
 **Uyesee** (AM160),
 **Youzhuan** (Intelligent Music Ceiling),
 **Zolo Audio** (Holo),
@@ -92,7 +95,7 @@ I also suggest you [visit the support topic](https://community.home-assistant.io
     media_player:
       - platform: linkplay
         host: YOUR_IP_ADDRESS 
-        devicename: NAME_OF_DEVICE_AS_IN_OFFICIAL_APPLICATION 
+        device_name: NAME_OF_DEVICE_AS_IN_OFFICIAL_APPLICATION 
     ```
 
 ### Configuration Variables
@@ -100,12 +103,12 @@ I also suggest you [visit the support topic](https://community.home-assistant.io
 **host:**\
   *(string)* *(Required)* The host name or IP address of the device that is running Emby.
   
-**devicename:**\
+**device_name:**\
   *(string)* *(Required)* The name of the device, as it setted up in the official application.
 
 **name:**\
   *(string)* *(Optional)* Name to use in the frontend.\
-  *Default value: Identical to device_name value*
+  *Default value: Identical to devicename value*
 
 **lastfm_api_key:**\
   *(string)* *(Optional)* API key to LastFM service to get album covers.
