@@ -28,7 +28,7 @@ from homeassistant.const import (
     STATE_UNKNOWN)
 from homeassistant.util.dt import utcnow
 
-VERSION = "1.1.0"
+from . import VERSION, ISSUE_URL, DATA_LINKPLAY
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,8 +40,6 @@ CONF_DEVICE_NAME = 'device_name'
 CONF_LASTFM_API_KEY = 'lastfm_api_key'
 #
 CONF_DEVICENAME_DEPRECATED = 'devicename'  # TODO: Remove this deprecated key in version 3.0
-
-DATA_LINKPLAY = 'linkplay'
 
 DEFAULT_NAME = 'LinkPlay device'
 
@@ -118,6 +116,11 @@ UPNP_TIMEOUT = 5
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up the LinkPlay device."""
+    # Print startup message
+    _LOGGER.debug('Version %s', VERSION)
+    _LOGGER.info('If you have any issues with this you need to open an issue '
+                 'here: %s' % ISSUE_URL)
+
     if DATA_LINKPLAY not in hass.data:
         hass.data[DATA_LINKPLAY] = {}
 

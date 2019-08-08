@@ -31,7 +31,7 @@ LinkPlay platform makes it easy to create a variety of modern audio systems. The
 **FABRIQ** (Chorus, Riff),
 **First Alert** (Onelink Safe & Sound),
 **GE Sol** (C),
-**GGMM** (E5 Wireless, E3 Wireless),
+**GGMM** (E2 Wireless, E3 Wireless, E5 Wireless),
 **GIEC** (Hi-Fi Smart Sound S1),
 **Harman Kardon** (Allure),
 **Hyundai** (Modern Oxygen Bar),

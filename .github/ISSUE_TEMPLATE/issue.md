@@ -16,14 +16,14 @@ Issues not containing the minimum requirements will be closed:
 
 ## Version of the custom_component
 <!-- If you are not using the newest version, download and try that before opening an issue
-If you are unsure about the version check the const.py file.
+If you are unsure about the version check the __init__.py file.
 -->
 
 ## Configuration
 
 ```yaml
 
-Add your logs here.
+Add your configs here.
 
 ```
 
