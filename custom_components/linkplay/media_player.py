@@ -119,7 +119,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     # Print startup message
     _LOGGER.debug('Version %s', VERSION)
     _LOGGER.info('If you have any issues with this you need to open an issue '
-                 'here: %s' % ISSUE_URL)
+                 'here: %s', ISSUE_URL)
 
     if DATA_LINKPLAY not in hass.data:
         hass.data[DATA_LINKPLAY] = {}

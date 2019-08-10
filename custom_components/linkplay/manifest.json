@@ -1,9 +1,9 @@
 {
   "domain": "linkplay",
-  "name": "LinkPlay",
+  "name": "LinkPlay Media Player",
   "documentation": "https://github.com/Limych/media_player.linkplay",
   "dependencies": [],
-  "config_flow": true,
+  "config_flow": false,
   "codeowners": [
     "@nicjo814",
     "@limych"
