@@ -1,3 +1,4 @@
+# pylint: disable=W0511,C0412
 """
 Support for LinkPlay based devices.
 
@@ -16,8 +17,7 @@ import xml.etree.ElementTree as ET
 import homeassistant.helpers.config_validation as cv
 import requests
 import voluptuous as vol
-from homeassistant.components.media_player import (
-    MEDIA_PLAYER_SCHEMA, MediaPlayerDevice)
+from homeassistant.components.media_player import (MediaPlayerDevice)
 from homeassistant.components.media_player.const import (
     DOMAIN, MEDIA_TYPE_MUSIC, SUPPORT_NEXT_TRACK, SUPPORT_PAUSE, SUPPORT_PLAY,
     SUPPORT_PLAY_MEDIA, SUPPORT_PREVIOUS_TRACK, SUPPORT_SEEK,
@@ -45,15 +45,15 @@ DEFAULT_NAME = 'LinkPlay device'
 
 LASTFM_API_BASE = "http://ws.audioscrobbler.com/2.0/?method="
 
-LINKPLAY_CONNECT_MULTIROOM_SCHEMA = MEDIA_PLAYER_SCHEMA.extend({
+LINKPLAY_CONNECT_MULTIROOM_SCHEMA = vol.Schema({
     vol.Required(ATTR_ENTITY_ID): cv.entity_id,
     vol.Required(ATTR_MASTER): cv.entity_id
 })
-LINKPLAY_PRESET_BUTTON_SCHEMA = MEDIA_PLAYER_SCHEMA.extend({
+LINKPLAY_PRESET_BUTTON_SCHEMA = vol.Schema({
     vol.Required(ATTR_ENTITY_ID): cv.entity_ids,
     vol.Required(ATTR_PRESET): cv.positive_int
 })
-LINKPLAY_REMOVE_SLAVES_SCHEMA = MEDIA_PLAYER_SCHEMA.extend({
+LINKPLAY_REMOVE_SLAVES_SCHEMA = vol.Schema({
     vol.Required(ATTR_ENTITY_ID): cv.entity_id,
     vol.Required(ATTR_SLAVES): cv.entity_ids
 })
@@ -114,12 +114,13 @@ SOURCES_MAP = {'0': 'WiFi', '10': 'WiFi', '31': 'WiFi', '40': 'Line-in',
 UPNP_TIMEOUT = 5
 
 
+# pylint: disable=W0613
 def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up the LinkPlay device."""
     # Print startup message
     _LOGGER.debug('Version %s', VERSION)
     _LOGGER.info('If you have any issues with this you need to open an issue '
-                 'here: %s' % ISSUE_URL)
+                 'here: %s', ISSUE_URL)
 
     if DATA_LINKPLAY not in hass.data:
         hass.data[DATA_LINKPLAY] = {}
@@ -159,6 +160,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     hass.data[DATA_LINKPLAY][dev_name] = linkplay
 
 
+# pylint: disable=R0902,R0904
 class LinkPlayDevice(MediaPlayerDevice):
     """Representation of a LinkPlay device."""
 
@@ -656,7 +658,7 @@ class LinkPlayDevice(MediaPlayerDevice):
         import eyed3
         from urllib.error import URLError
         try:
-            filename, header = urllib.request.urlretrieve(self._media_uri)
+            filename, _ = urllib.request.urlretrieve(self._media_uri)
             audiofile = eyed3.load(filename)
             self._media_title = audiofile.tag.title
             self._media_artist = audiofile.tag.artist
@@ -684,6 +686,7 @@ class LinkPlayDevice(MediaPlayerDevice):
         except (ValueError, KeyError):
             self._media_image_url = None
 
+    # pylint: disable=R0912,R0915
     def update(self):
         """Get the latest player details from the device."""
         import upnpclient
@@ -752,7 +755,7 @@ class LinkPlayDevice(MediaPlayerDevice):
             self._source = SOURCES_MAP.get(player_status['mode'],
                                            'WiFi')
             self._sound_mode = SOUND_MODES.get(player_status['eq'])
-            self._shuffle = True if player_status['loop'] == '2' else False
+            self._shuffle = (player_status['loop'] == '2')
             self._playing_spotify = bool(player_status['mode'] == '31')
 
             self._new_song = self._is_playing_new_track(player_status)
@@ -810,6 +813,7 @@ class LinkPlayDevice(MediaPlayerDevice):
         return True
 
 
+# pylint: disable=R0903
 class LinkPlayRestData:
     """Class for handling the data retrieval from the LinkPlay device."""
 
@@ -839,6 +843,7 @@ class LinkPlayRestData:
             self.data = None
 
 
+# pylint: disable=R0903
 class LastFMRestData:
     """Class for handling the data retrieval from the LinkPlay device."""
 
