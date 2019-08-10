@@ -3,7 +3,7 @@
   "name": "LinkPlay Media Player",
   "documentation": "https://github.com/Limych/media_player.linkplay",
   "dependencies": [],
-  "config_flow": false,
+  "config_flow": true,
   "codeowners": [
     "@nicjo814",
     "@limych"
