@@ -11,12 +11,10 @@
 [![License](https://img.shields.io/github/license/Limych/mediaplayer.linkplay.svg?style=popout)](LICENSE)
 ![Requires.io](https://img.shields.io/requires/github/Limych/media_player.linkplay)
 
-[![hacs](https://img.shields.io/badge/HACS-Default-orange.svg?style=popout)][hacs]
-![Project Maintenance](https://img.shields.io/badge/maintainer-Andrey%20Khrolenok%20%40Limych-blue.svg?style=popout)
-
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/Limych/media_player.linkplay?style=popout)](https://github.com/Limych/media_player.linkplay/pulls)
 [![Bugs](https://img.shields.io/github/issues/Limych/media_player.linkplay/bug.svg?colorB=red&label=bugs&style=popout)](https://github.com/Limych/media_player.linkplay/issues?q=is%3Aopen+is%3Aissue+label%3ABug)
 
+[![hacs](https://img.shields.io/badge/HACS-Default-orange.svg?style=popout)][hacs]
 [![Community Forum](https://img.shields.io/badge/community-forum-brightgreen.svg?style=popout)][forum-support]
 
 This component allows you to integrate control of audio devices based on LinkPlay platform into your Home Assistant smart home system.
