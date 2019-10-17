@@ -13,7 +13,6 @@
     "uPnPClient==0.0.8",
     "validators==0.12.3"
   ],
-  "homeassistant": "0.88.0",
   "ssdp": {
     "st": [
       "upnp:rootdevice"

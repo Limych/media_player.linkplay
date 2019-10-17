@@ -2,10 +2,20 @@
 
 # LinkPlay devices integration for Home Assistant
 
-***Collaborators wanted!** This component was transferred to this repository to save from death as a result of moral obsolescence of the code. But now I don’t have the opportunity to fully support it and develop the code.*
+> ***Collaborators wanted!** This component was transferred to this repository to save from death as a result of moral obsolescence of the code. But now I don’t have the opportunity to fully support it and develop the code.*
+> 
+> *If you can help with developing this component, I will be very grateful to you.  Please, message to me.*
 
-*If you can help with developing this component, I will be very grateful to you.  Please, message to me.*
-<p align="center">* * *</p>
+[![GitHub Release](https://img.shields.io/github/tag-date/Limych/media_player.linkplay?label=release&style=popout)](https://github.com/Limych/media_player.linkplay/releases)
+[![GitHub Activity](https://img.shields.io/github/commit-activity/y/Limych/media_player.linkplay.svg?style=popout)](https://github.com/Limych/media_player.linkplay/commits/master)
+[![License](https://img.shields.io/github/license/Limych/mediaplayer.linkplay.svg?style=popout)](LICENSE)
+![Requires.io](https://img.shields.io/requires/github/Limych/media_player.linkplay)
+
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/Limych/media_player.linkplay?style=popout)](https://github.com/Limych/media_player.linkplay/pulls)
+[![Bugs](https://img.shields.io/github/issues/Limych/media_player.linkplay/bug.svg?colorB=red&label=bugs&style=popout)](https://github.com/Limych/media_player.linkplay/issues?q=is%3Aopen+is%3Aissue+label%3ABug)
+
+[![hacs](https://img.shields.io/badge/HACS-Default-orange.svg?style=popout)][hacs]
+[![Community Forum](https://img.shields.io/badge/community-forum-brightgreen.svg?style=popout)][forum-support]
 
 This component allows you to integrate control of audio devices based on LinkPlay platform into your Home Assistant smart home system.
 
@@ -67,8 +77,6 @@ LinkPlay platform makes it easy to create a variety of modern audio systems. The
 **Zolo Audio** (Holo),
 etc.
 
-I also suggest you [visit the support topic](https://community.home-assistant.io/t/linkplay-integration/33878) on the community forum.
-
 ## Component setup instructions
 
 1. Create a directory `custom_components` in your Home Assistant configuration directory.
@@ -115,9 +123,9 @@ I also suggest you [visit the support topic](https://community.home-assistant.io
 
 ## Track updates
 
-You can automatically track new versions of this component and update it by [custom-updater](https://github.com/custom-components/custom_updater).
+You can automatically track new versions of this component and update it by [custom-updater](https://github.com/custom-components/custom_updater) (deprecated) or [HACS][hacs].
 
-To initiate tracking add this lines to you `configuration.yaml` file:
+For custom-updater to initiate tracking add this lines to you `configuration.yaml` file:
 
 ```yaml
 # Example configuration.yaml entry
@@ -127,3 +135,6 @@ custom_updater:
   component_urls:
     - https://raw.githubusercontent.com/Limych/media_player.linkplay/master/custom_components.json
 ```
+
+[forum-support]: https://community.home-assistant.io/t/linkplay-integration/33878
+[hacs]: https://github.com/custom-components/hacs

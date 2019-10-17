@@ -1,0 +1,7 @@
+geopy
+geohash2
+voluptuous
+homeassistant
+eyeD3==0.8.7
+uPnPClient==0.0.8
+validators==0.12.3
