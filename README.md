@@ -8,7 +8,7 @@
 
 [![GitHub Release](https://img.shields.io/github/tag-date/Limych/media_player.linkplay?label=release&style=popout)](https://github.com/Limych/media_player.linkplay/releases)
 [![GitHub Activity](https://img.shields.io/github/commit-activity/y/Limych/media_player.linkplay.svg?style=popout)](https://github.com/Limych/media_player.linkplay/commits/master)
-[![License](https://img.shields.io/github/license/Limych/mediaplayer.linkplay.svg?style=popout)](LICENSE)
+[![License](https://img.shields.io/github/license/Limych/media_player.linkplay.svg?style=popout)](LICENSE)
 ![Requires.io](https://img.shields.io/requires/github/Limych/media_player.linkplay)
 
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/Limych/media_player.linkplay?style=popout)](https://github.com/Limych/media_player.linkplay/pulls)
