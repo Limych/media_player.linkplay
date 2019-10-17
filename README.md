@@ -24,58 +24,59 @@ This component allows you to integrate control of audio devices based on LinkPla
 ![](https://raw.githubusercontent.com/Limych/media_player.linkplay/master/docs/images/linkplay_devices.png)
 
 LinkPlay platform makes it easy to create a variety of modern audio systems. There are already quite a few manufacturers and devices that operate on the basis of LinkPlay. Here are just some of the firms and devices:
-**August** (WS300G),
-**Auna** (Intelligence Tube),
-**Bauhn** (SoundMax 5),
-**Bem** (Speaker Big Mo),
-**Centaurus** (Flyears),
-**Champion** (AWF320),
-**COWIN** (DiDa, Thunder),
-**Crystal Acoustics** (Crystal Audio),
-**CVTE** (FD2140),
-**Dayton Audio** (AERO),
-**DOSS** (Deshi, Soundbox Mini, DOSS Assistant, Cloud Fox A1),
-**DYON** (DYON Area Player),
-**Edifier** (MA1),
-**Energy Sistem** (Multiroom Tower Wi-Fi, Multiroom Portable Wi-Fi),
-**FABRIQ** (Chorus, Riff),
-**First Alert** (Onelink Safe & Sound),
-**GE Sol** (C),
-**GGMM** (E2 Wireless, E3 Wireless, E5 Wireless),
-**GIEC** (Hi-Fi Smart Sound S1),
-**Harman Kardon** (Allure),
-**Hyundai** (Modern Oxygen Bar),
-**iDeaUSA** (iDEaHome, Home Speaker, Mini Home Soundbar),
-**iHome** (iAVS16),
-**iLive** (Concierge, Platinum),
-**iLuv** (Aud Air, Aud Click Shower, Aud Click),
-**JAM Audio** (Voice, Symphony, Rhythm),
-**JD** (CrazyBoa 2Face),
-**Lowes** (Showbox),
-**Magnavox** (MSH315V),
-**Medion** (MD43631, MedionX MD43259),
-**Meidong** (Meidong 3119),
-**MK** (MK Alexa Speaker),
-**MÜZO** (Cobblestone),
-**Naxa** (NAS-5003, NHS-5002, NAS-5001, NAS-5000),
-**Nexum** (Memo),
-**Omaker** (WoW),
-**Omars** (Dogo),
-**Polaroid** (PWF1001),
-**Roxcore**	(Roxcore),
-**Sharper Image** (SWF1002),
-**Shenzhen Renqing Technology Ltd** (ROCKLAVA),
-**Sonoé** (iEast SoundStream, iEast Stream Pro, iEast StreamAmp AM160, iEast StreamAmp i50B),
-**SoundBot** (SB600),
-**SoundLogic** (Buddy),
-**Stereoboommm** (MR200, MR300),
-**Tibo** (Choros Tap),
-**Tinman** (Smart JOJO),
-**Venz** (A501),
-**Uyesee** (AM160),
-**Youzhuan** (Intelligent Music Ceiling),
-**Zolo Audio** (Holo),
-etc.
+
+* August (WS300G)
+* Auna (Intelligence Tube)
+* Bauhn (SoundMax 5)
+* Bem (Speaker Big Mo)
+* Centaurus (Flyears)
+* Champion (AWF320)
+* COWIN (DiDa Thunder)
+* Crystal Acoustics (Crystal Audio)
+* CVTE (FD2140)
+* Dayton Audio (AERO)
+* DOSS (Deshi Soundbox Mini DOSS Assistant Cloud Fox A1)
+* DYON (DYON Area Player)
+* Edifier (MA1)
+* Energy Sistem (Multiroom Tower Wi-Fi Multiroom Portable Wi-Fi)
+* FABRIQ (Chorus Riff)
+* First Alert (Onelink Safe & Sound)
+* GE Sol (C)
+* GGMM (E2 Wireless E3 Wireless E5 Wireless)
+* GIEC (Hi-Fi Smart Sound S1)
+* Harman Kardon (Allure)
+* Hyundai (Modern Oxygen Bar)
+* iDeaUSA (iDEaHome Home Speaker Mini Home Soundbar)
+* iHome (iAVS16)
+* iLive (Concierge Platinum)
+* iLuv (Aud Air Aud Click Shower Aud Click)
+* JAM Audio (Voice Symphony Rhythm)
+* JD (CrazyBoa 2Face)
+* Lowes (Showbox)
+* Magnavox (MSH315V)
+* Medion (MD43631 MedionX MD43259)
+* Meidong (Meidong 3119)
+* MK (MK Alexa Speaker)
+* MÜZO ([Cobblestone](https://www.arylic.com/products/muzo-cobblestone-wifi-pre-amp-with-airplay-dlna-spotify-connect))
+* Naxa (NAS-5003 NHS-5002 NAS-5001 NAS-5000)
+* Nexum (Memo)
+* Omaker (WoW)
+* Omars (Dogo)
+* Polaroid (PWF1001)
+* Roxcore	(Roxcore)
+* Sharper Image (SWF1002)
+* Shenzhen Renqing Technology Ltd (ROCKLAVA)
+* Sonoé (iEast SoundStream iEast Stream Pro iEast StreamAmp AM160 iEast StreamAmp i50B)
+* SoundBot (SB600)
+* SoundLogic (Buddy)
+* Stereoboommm (MR200 MR300)
+* Tibo (Choros Tap)
+* Tinman (Smart JOJO)
+* Venz (A501)
+* Uyesee (AM160)
+* Youzhuan (Intelligent Music Ceiling)
+* Zolo Audio (Holo)
+* etc.
 
 ## Component setup instructions
 
