@@ -1,13 +1,13 @@
 {
-  "linkplay": {
-    "version": "1.1.2",
-    "local_location": "/custom_components/linkplay/__init__.py",
-    "remote_location": "https://raw.githubusercontent.com/Limych/media_player.linkplay/master/custom_components/linkplay/__init__.py",
-    "visit_repo": "https://github.com/Limych/media_player.linkplay",
-    "changelog": "https://github.com/Limych/media_player.linkplay/releases/latest",
-    "resources": [
-      "https://raw.githubusercontent.com/Limych/media_player.linkplay/master/custom_components/linkplay/manifest.json",
-      "https://raw.githubusercontent.com/Limych/media_player.linkplay/master/custom_components/linkplay/media_player.py"
-    ]
-  }
+    "linkplay": {
+        "version": "1.1.2",
+        "local_location": "/custom_components/linkplay/__init__.py",
+        "remote_location": "https://raw.githubusercontent.com/Limych/media_player.linkplay/master/custom_components/linkplay/__init__.py",
+        "visit_repo": "https://github.com/Limych/media_player.linkplay",
+        "changelog": "https://github.com/Limych/media_player.linkplay/releases/latest",
+        "resources": [
+            "https://raw.githubusercontent.com/Limych/media_player.linkplay/master/custom_components/linkplay/manifest.json",
+            "https://raw.githubusercontent.com/Limych/media_player.linkplay/master/custom_components/linkplay/media_player.py"
+        ]
+    }
 }

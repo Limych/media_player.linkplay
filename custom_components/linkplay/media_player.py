@@ -99,9 +99,7 @@ SERVICE_TO_METHOD = {
 
 SUPPORT_LINKPLAY = \
     SUPPORT_SELECT_SOURCE | SUPPORT_SELECT_SOUND_MODE | SUPPORT_SHUFFLE_SET | \
-    SUPPORT_VOLUME_SET | SUPPORT_VOLUME_MUTE
-
-SUPPORT_MEDIA_MODES_WIFI = \
+    SUPPORT_VOLUME_SET | SUPPORT_VOLUME_MUTE | \
     SUPPORT_NEXT_TRACK | SUPPORT_PAUSE | SUPPORT_STOP | SUPPORT_PLAY | \
     SUPPORT_SEEK | SUPPORT_PREVIOUS_TRACK | SUPPORT_SEEK | SUPPORT_PLAY_MEDIA
 
@@ -246,7 +244,7 @@ class LinkPlayDevice(MediaPlayerDevice):
     @property
     def supported_features(self):
         """Flag media player features that are supported."""
-        return SUPPORT_LINKPLAY | SUPPORT_MEDIA_MODES_WIFI
+        return SUPPORT_LINKPLAY
 
     @property
     def media_position(self):
