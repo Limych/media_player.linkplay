@@ -22,7 +22,7 @@ from homeassistant.components.media_player.const import (
     DOMAIN, MEDIA_TYPE_MUSIC, SUPPORT_NEXT_TRACK, SUPPORT_PAUSE, SUPPORT_PLAY,
     SUPPORT_PLAY_MEDIA, SUPPORT_PREVIOUS_TRACK, SUPPORT_SEEK,
     SUPPORT_SELECT_SOUND_MODE, SUPPORT_SELECT_SOURCE, SUPPORT_SHUFFLE_SET,
-    SUPPORT_VOLUME_MUTE, SUPPORT_VOLUME_SET, SUPPORT_STOP)
+    SUPPORT_TURN_OFF, SUPPORT_VOLUME_MUTE, SUPPORT_VOLUME_SET, SUPPORT_STOP)
 from homeassistant.const import (
     ATTR_ENTITY_ID, CONF_HOST, CONF_NAME, STATE_PAUSED, STATE_PLAYING,
     STATE_UNKNOWN)
@@ -101,7 +101,7 @@ SUPPORT_LINKPLAY = \
     SUPPORT_SELECT_SOURCE | SUPPORT_SELECT_SOUND_MODE | SUPPORT_SHUFFLE_SET | \
     SUPPORT_VOLUME_SET | SUPPORT_VOLUME_MUTE | \
     SUPPORT_NEXT_TRACK | SUPPORT_PAUSE | SUPPORT_STOP | SUPPORT_PLAY | \
-    SUPPORT_SEEK | SUPPORT_PREVIOUS_TRACK | SUPPORT_SEEK | SUPPORT_PLAY_MEDIA
+    SUPPORT_TURN_OFF | SUPPORT_PREVIOUS_TRACK | SUPPORT_SEEK | SUPPORT_PLAY_MEDIA
 
 SOUND_MODES = {'0': 'Normal', '1': 'Classic', '2': 'Pop', '3': 'Jazz',
                '4': 'Vocal'}
@@ -317,10 +317,10 @@ class LinkPlayDevice(MediaPlayerDevice):
 
     def turn_off(self):
         """Turn off media player."""
-        self._lpapi.call('GET', 'getShutdown')
+        self._lpapi.call('GET', 'setShutdown:0')
         value = self._lpapi.data
         if value != "OK":
-            _LOGGER.warning("Failed to power of the device. Got response: %s",
+            _LOGGER.warning("Failed to power off the device. Got response: %s",
                             value)
 
     def set_volume_level(self, volume):
