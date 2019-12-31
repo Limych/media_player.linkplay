@@ -1,11 +1,14 @@
+#!/usr/bin/env python3
+
 #  Copyright (c) 2019, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
 #  Creative Commons BY-NC-SA 4.0 International Public License
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
-
+import copy
 import json
 import logging
 import os
 import re
+import subprocess
 
 # http://docs.python.org/2/howto/logging.html#library-config
 # Avoids spurious error messages if no logger is configured by the user
@@ -15,7 +18,7 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 _LOGGER = logging.getLogger(__name__)
 
-TRACKER_FPATH = 'custom_components.json'
+TRACKER_FPATH = 'custom_components.json' if os.path.isfile('custom_components.json') else 'tracker.json'
 
 
 def fallback_version(localpath):
@@ -61,6 +64,7 @@ def get_component_version(localpath, name):
 
 with open(TRACKER_FPATH, 'r') as tracker_file:
     tracker = json.load(tracker_file)
+old_tr = copy.deepcopy(tracker)
 for package in tracker:
     _LOGGER.info('Updating version for %s', package)
     local_path = tracker[package]['local_location'].lstrip('/\\')
@@ -77,5 +81,8 @@ for package in tracker:
             if file != local_path:
                 resources.append(base_url + file[len(base_path):])
     tracker[package]['resources'] = resources
-with open(TRACKER_FPATH, 'w') as tracker_file:
-    json.dump(tracker, tracker_file, indent=4)
+if tracker != old_tr:
+    with open(TRACKER_FPATH, 'w') as tracker_file:
+        json.dump(tracker, tracker_file, indent=4)
+
+# subprocess.run(["git", "add", TRACKER_FPATH])
