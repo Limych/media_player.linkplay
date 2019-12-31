@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
 
-git config core.hooksPath git-hooks
+pip3 install -r requirements-dev.txt --user
+pre-commit install
+pre-commit autoupdate
