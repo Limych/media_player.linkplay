@@ -6,7 +6,7 @@ https://home-assistant.io/components/media_player.linkplay/
 """
 
 DOMAIN = 'linkplay'
-VERSION = '1.1.4'
+VERSION = '1.1.5'
 ISSUE_URL = 'https://github.com/Limych/media_player.linkplay/issues'
 
 DATA_LINKPLAY = DOMAIN
