@@ -4,7 +4,12 @@ repos:
       - id: update-tracker
         name: "Update Tracker"
         entry: "./update_tracker.py"
-        language: python
+        language: system
+      - id: pylint
+        name: pylint
+        entry: python3 -m pylint.__main__
+        language: system
+        types: [python]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v2.4.0
     hooks:
