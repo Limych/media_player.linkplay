@@ -722,6 +722,11 @@ class LinkPlayDevice(MediaPlayerDevice):
         if isinstance(player_status, dict):
             self._lpapi.call('GET', 'getStatus')
             device_api_result = self._lpapi.data
+            if device_api_result is None:
+                _LOGGER.warning('Unable to connect to device')
+                self._media_title = 'Unable to connect to device'
+                return True
+
             try:
                 device_status = json.loads(device_api_result)
             except ValueError:
