@@ -701,7 +701,8 @@ class LinkPlayDevice(MediaPlayerDevice):
                         self._upnp_device = upnpclient.Device(entry.location)
                         break
                 except (requests.exceptions.HTTPError,
-                        requests.exceptions.MissingSchema):
+                        requests.exceptions.MissingSchema,
+                        lxml.etree.XMLSyntaxError):
                     pass
 
         self._lpapi.call('GET', 'getPlayerStatus')
