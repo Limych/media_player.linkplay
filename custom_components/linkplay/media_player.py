@@ -688,22 +688,16 @@ class LinkPlayDevice(MediaPlayerDevice):
     def update(self):
         """Get the latest player details from the device."""
         import upnpclient
-        from netdisco.ssdp import scan
 
         if self._slave_mode:
             return True
 
         if self._upnp_device is None:
-            for entry in scan(UPNP_TIMEOUT):
-                try:
-                    if upnpclient.Device(entry.location).friendly_name == \
-                            self._devicename:
-                        self._upnp_device = upnpclient.Device(entry.location)
-                        break
-                except (requests.exceptions.HTTPError,
-                        requests.exceptions.MissingSchema,
-                        lxml.etree.XMLSyntaxError):
-                    pass
+            for entry in upnpclient.discover(UPNP_TIMEOUT):
+                if entry.friendly_name == \
+                        self._devicename:
+                    self._upnp_device = upnpclient.Device(entry.location)
+                    break
 
         self._lpapi.call('GET', 'getPlayerStatus')
         player_api_result = self._lpapi.data
