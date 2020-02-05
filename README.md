@@ -3,7 +3,7 @@
 # LinkPlay devices integration for Home Assistant
 
 > ***Collaborators wanted!** This component was transferred to this repository to save from death as a result of moral obsolescence of the code. But now I don’t have the opportunity to fully support it and develop the code.*
-> 
+>
 > *If you can help with developing this component, I will be very grateful to you.  Please, message to me.*
 
 [![GitHub Release](https://img.shields.io/github/tag-date/Limych/media_player.linkplay?label=release&style=popout)](https://github.com/Limych/media_player.linkplay/releases)
@@ -98,20 +98,20 @@ etc.
 
 
 1. To add LinkPlay device to your installation, add the following to your `configuration.yaml` file:
-    
+
     ```yaml
     # Example configuration.yaml entry
     media_player:
       - platform: linkplay
-        host: YOUR_IP_ADDRESS 
-        device_name: NAME_OF_DEVICE_AS_IN_OFFICIAL_APPLICATION 
+        host: YOUR_IP_ADDRESS
+        device_name: NAME_OF_DEVICE_AS_IN_OFFICIAL_APPLICATION
     ```
 
 ### Configuration Variables
-  
+
 **host:**\
   *(string)* *(Required)* The host name or IP address of the device that is running Emby.
-  
+
 **device_name:**\
   *(string)* *(Required)* The name of the device, as it setted up in the official application.
 
@@ -136,6 +136,48 @@ custom_updater:
   component_urls:
     - https://raw.githubusercontent.com/Limych/media_player.linkplay/master/custom_components.json
 ```
+
+## Contributing
+
+This is an active open-source project. We are always open to people who want to
+use the code or contribute to it.
+
+We have set up a separate document containing our
+[contribution guidelines](CONTRIBUTING.md).
+
+Thank you for being involved! :heart_eyes:
+
+## Authors & contributors
+
+The original setup of this repository is by [Andrey "Limych" Khrolenok][limych].
+
+For a full list of all authors and contributors,
+check [the contributor's page][contributors].
+
+## License
+
+MIT License
+
+Copyright (c) 2019 Niclas Berglind @nicjo814
+Copyright (c) 2019—2020 Andrey "Limych" Khrolenok
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 [forum-support]: https://community.home-assistant.io/t/linkplay-integration/33878
 [hacs]: https://github.com/custom-components/hacs
