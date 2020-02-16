@@ -704,7 +704,7 @@ class LinkPlayDevice(MediaPlayerDevice):
             return True
 
         if self._upnp_device is None:
-            for entry in upnp_discover(UPNP_TIMEOUT):
+            for entry in self.upnp_discover(UPNP_TIMEOUT):
                 if entry.friendly_name == \
                         self._devicename:
                     self._upnp_device = upnpclient.Device(entry.location)
