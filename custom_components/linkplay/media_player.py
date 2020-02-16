@@ -9,6 +9,7 @@ https://home-assistant.io/components/media_player.linkplay/
 import binascii
 import json
 import upnpclient
+import netdisco.ssdp
 import logging
 import os
 import tempfile
@@ -687,7 +688,7 @@ class LinkPlayDevice(MediaPlayerDevice):
 
     def upnp_discover(self, timeout=5):
         devices = {}
-        for entry in upnpclient.scan(timeout):
+        for entry in netdisco.ssdp.scan(timeout):
             if entry.location in devices:
                 continue
             try:
