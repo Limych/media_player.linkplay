@@ -8,6 +8,7 @@ https://home-assistant.io/components/media_player.linkplay/
 
 import binascii
 import json
+import upnpclient
 import logging
 import os
 import tempfile
@@ -684,16 +685,26 @@ class LinkPlayDevice(MediaPlayerDevice):
         except (ValueError, KeyError):
             self._media_image_url = None
 
+    def upnp_discover(self, timeout=5):
+        devices = {}
+        for entry in upnpclient.scan(timeout):
+            if entry.location in devices:
+                continue
+            try:
+                devices[entry.location] = upnpclient.Device(entry.location)
+            except Exception as exc:
+                _LOGGER.debug('Error \'%s\' for %s', exc, entry.location)
+        return list(devices.values())
+
     # pylint: disable=R0912,R0915
     def update(self):
         """Get the latest player details from the device."""
-        import upnpclient
 
         if self._slave_mode:
             return True
 
         if self._upnp_device is None:
-            for entry in upnpclient.discover(UPNP_TIMEOUT):
+            for entry in upnp_discover(UPNP_TIMEOUT):
                 if entry.friendly_name == \
                         self._devicename:
                     self._upnp_device = upnpclient.Device(entry.location)
