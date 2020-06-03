@@ -622,6 +622,7 @@ class LinkPlayDevice(MediaPlayerDevice):
 
         self._media_title = None
         self._media_album = None
+        self._media_artist = None
         self._media_image_url = None
 
         if self._upnp_device is None:
