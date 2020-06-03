@@ -19,7 +19,7 @@ import xml.etree.ElementTree as ET
 import homeassistant.helpers.config_validation as cv
 import requests
 import voluptuous as vol
-from homeassistant.components.media_player import (MediaPlayerDevice)
+from homeassistant.components.media_player import (MediaPlayerEntity)
 from homeassistant.components.media_player.const import (
     DOMAIN, MEDIA_TYPE_MUSIC, SUPPORT_NEXT_TRACK, SUPPORT_PAUSE, SUPPORT_PLAY,
     SUPPORT_PLAY_MEDIA, SUPPORT_PREVIOUS_TRACK, SUPPORT_SEEK,
@@ -161,7 +161,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 
 
 # pylint: disable=R0902,R0904
-class LinkPlayDevice(MediaPlayerDevice):
+class LinkPlayDevice(MediaPlayerEntity):
     """Representation of a LinkPlay device."""
 
     def __init__(self, host, devicename, name=None, lfm_api_key=None):
