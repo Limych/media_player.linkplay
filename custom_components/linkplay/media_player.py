@@ -107,9 +107,9 @@ SUPPORT_LINKPLAY = \
 
 SOUND_MODES = {'0': 'Normal', '1': 'Classic', '2': 'Pop', '3': 'Jazz',
                '4': 'Vocal'}
-SOURCES = {'wifi': 'WiFi', 'line-in': 'Line-in', 'bluetooth': 'Bluetooth',
+SOURCES = {'wifi': 'WiFi', 'line-in': 'Line-in', 'line-in2': 'Line-in2', 'bluetooth': 'Bluetooth',
            'optical': 'Optical', 'udisk': 'MicroSD'}
-SOURCES_MAP = {'0': 'WiFi', '10': 'WiFi', '31': 'WiFi', '40': 'Line-in',
+SOURCES_MAP = {'0': 'WiFi', '10': 'WiFi', '31': 'WiFi', '40': 'Line-in', '47': 'Line-in2',
                '41': 'Bluetooth', '43': 'Optical'}
 UPNP_TIMEOUT = 5
 
