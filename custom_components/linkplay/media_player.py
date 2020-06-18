@@ -19,7 +19,13 @@ import xml.etree.ElementTree as ET
 import homeassistant.helpers.config_validation as cv
 import requests
 import voluptuous as vol
-from homeassistant.components.media_player import (MediaPlayerDevice)
+
+# Code snippet to keep compatibility with Home Assistant 0.109, which used the class name MediaPlayerDevice instead of MediaPlayerDevice
+try:
+    from homeassistant.components.media_player import MediaPlayerEntity
+except ImportError:
+    from homeassistant.components.media_player import MediaPlayerDevice as MediaPlayerEntity
+
 from homeassistant.components.media_player.const import (
     DOMAIN, MEDIA_TYPE_MUSIC, SUPPORT_NEXT_TRACK, SUPPORT_PAUSE, SUPPORT_PLAY,
     SUPPORT_PLAY_MEDIA, SUPPORT_PREVIOUS_TRACK, SUPPORT_SEEK,
@@ -151,7 +157,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 
     dev_name = config.get(CONF_DEVICE_NAME,
                           config.get(CONF_DEVICENAME_DEPRECATED))
-    linkplay = LinkPlayDevice(config.get(CONF_HOST),
+    linkplay = LinkPlayEntity(config.get(CONF_HOST),
                               dev_name,
                               config.get(CONF_NAME),
                               config.get(CONF_LASTFM_API_KEY))
@@ -161,11 +167,11 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 
 
 # pylint: disable=R0902,R0904
-class LinkPlayDevice(MediaPlayerDevice):
-    """Representation of a LinkPlay device."""
+class LinkPlayEntity(MediaPlayerEntity):
+    """Representation of a LinkPlay entity."""
 
     def __init__(self, host, devicename, name=None, lfm_api_key=None):
-        """Initialize the LinkPlay device."""
+        """Initialize the LinkPlay entity."""
         self._devicename = devicename
         if name is not None:
             self._name = name
