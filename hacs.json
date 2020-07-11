@@ -1,4 +1,6 @@
 {
   "name": "LinkPlay Sound Devices Integration",
+  "content_in_root": false,
+  "render_readme": true,
   "domains": ["media_player"]
 }
