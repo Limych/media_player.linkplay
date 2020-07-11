@@ -27,7 +27,6 @@ This **will overwrite** the previous **LinkPlay Sound Devices Integration** comp
           name: Sound Room1
           device_name: Room1
           icecast_metadata: 'StationNameSongTitle'
-          unavailable_message: '<l'appareil n'est pas disponible>'
           multiroom_wifidirect: False
           sources: 
             {
@@ -44,7 +43,6 @@ This **will overwrite** the previous **LinkPlay Sound Devices Integration** comp
           name: Sound Room2
           device_name: Room2
           icecast_metadata: 'Off'  # valid values: 'Off', 'StationName', 'StationNameSongTitle'
-          unavailable_message: '<Das Gerät ist nicht verfügbar>'
           sources: 
             {
               'wifi': 'WiFi'
@@ -64,9 +62,6 @@ This **will overwrite** the previous **LinkPlay Sound Devices Integration** comp
 
 **icecast_metadata:**\
   *(string)* *(Optional)* When playing icecast webradio streams, how to handle metadata. Valid values here are `'Off'`, `'StationName'`, `'StationNameSongTitle'`, defaulting to `'StationName'` when not set. With `'Off'`, Home Assistant will not try do request any metadata from the IceCast server. With `'StationName'`, Home Assistant will request from the headers only once when starting the playback the stream name, and display it in the `media_title` property of the player. With `'StationNameSongTitle'` Home Assistant will request the stream server periodically for icy-metadata, and read out `StreamTitle`, trying to figure out correct values for `media_title` and `media_artist`, in order to gather cover art information from LastFM service (see below). The stream name (usually the name of the radio station) will be placed in the `friendly_name` property of the player while playing. Note that this depends on how the icecast radio station servers and encoders are configured, if they don't provide proper metadata, it's better to turn it off or just use StationName to save server load.
-
-**unavailable_message:**\
-  *(string)* *(Optional)* Override the default `<unable to connect to device>` text message shown if the device has connection issues with the network.
 
 **multiroom_wifidirect:**\
   *(boolean)* *(Optional)* Set to `True` to override the default router mode of multiroom connection, and force the old wifi-direct method. Units with firmware version lower than v4.2.8020 will be autodetected and they connect to multirooms only in wifi-direct mode. This option is needed only for units with newer versions if the user has a mix of players running old and new firmware.
@@ -133,11 +128,12 @@ Preset count vary from device tyoe, usually the app shows how many presets can b
 
 ## Snapshot and restore
 
-To save the player state:
+To prepare the player to play TTS and save the current state of it for restoring afterwards, current playback will stop:
 ```yaml
     - service: linkplay.snapshot
       data:
         entity_id: media_player.sound_room1
+        switchinput: true
 ```
 To restore the player state:
 ```yaml
@@ -183,10 +179,16 @@ To intrerupt playback of a source, say a TTS message and resume playback afterwa
     - service: linkplay.snapshot
       data:
         entity_id: media_player.sound_room1
+        switchinput: true
+    - service: media_player.volume_set
+      data:
+        entity_id: media_player.hang_nappali
+        volume_level: 0.8
     - service: tts.google_translate_say
       data:
         entity_id: media_player.sound_room1
         message: 'Mary arrived home'
+    - delay: '00:00:02'
     - service: linkplay.restore
       data:
         entity_id: media_player.sound_room1
