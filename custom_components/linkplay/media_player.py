@@ -26,7 +26,7 @@ from homeassistant.components.media_player.const import (
     DOMAIN, MEDIA_TYPE_MUSIC, SUPPORT_NEXT_TRACK, SUPPORT_PAUSE, SUPPORT_PLAY,
     SUPPORT_PLAY_MEDIA, SUPPORT_PREVIOUS_TRACK, SUPPORT_SEEK,
     SUPPORT_SELECT_SOUND_MODE, SUPPORT_SELECT_SOURCE, SUPPORT_SHUFFLE_SET,
-    SUPPORT_VOLUME_MUTE, SUPPORT_VOLUME_SET, SUPPORT_STOP)  # SUPPORT_TURN_OFF, 
+    SUPPORT_VOLUME_MUTE, SUPPORT_VOLUME_SET, SUPPORT_STOP)
 from homeassistant.const import (
     ATTR_ENTITY_ID, ATTR_DEVICE_CLASS, CONF_HOST, CONF_NAME, STATE_PAUSED, STATE_PLAYING, STATE_ON, STATE_IDLE, STATE_UNKNOWN, STATE_UNAVAILABLE)
 from homeassistant.util.dt import utcnow
@@ -36,7 +36,6 @@ from . import VERSION, ISSUE_URL, DOMAIN, ATTR_MASTER
 
 _LOGGER = logging.getLogger(__name__)
 
-#ATTR_MASTER = 'master'
 ATTR_SLAVE = 'slave'
 ATTR_LINKPLAY_GROUP = 'linkplay_group'
 ATTR_FWVER = 'firmware'
@@ -66,7 +65,6 @@ ICE_THROTTLE = timedelta(seconds=60)
 UNA_THROTTLE = timedelta(seconds=60)
 
 DEFAULT_ICECAST_UPDATE = 'StationName'
-#DEFAULT_MULTIROOM_MSG = 'Sound from'
 DEFAULT_MULTIROOM_WIFIDIRECT = False
 
 PLATFORM_SCHEMA = vol.All(cv.PLATFORM_SCHEMA.extend({
@@ -136,7 +134,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     _LOGGER.info('If you have any issues with this you need to open an issue here: %s', ISSUE_URL)
 
     if DOMAIN not in hass.data:
-        hass.data[DOMAIN] = LinkPlayData()  # {}
+        hass.data[DOMAIN] = LinkPlayData()
         
     resource = "http://{0}/httpapi.asp?command=getStatus".format(config.get(CONF_HOST))
     rqst = requests.Request("GET", resource).prepare()
@@ -233,7 +231,7 @@ class LinkPlayDevice(MediaPlayerEntity):
         self._devicename = name
         self._host = host
         self._icon = ICON_DEFAULT
-        self._state = STATE_UNAVAILABLE  #STATE_UNKNOWN
+        self._state = STATE_UNAVAILABLE
         self._volume = 0
         self._fadevol = True
         self._source = None
@@ -337,23 +335,6 @@ class LinkPlayDevice(MediaPlayerEntity):
         """Return the firmware version number of the device."""
         return self._fw_ver
 
-#    @property
-#    def unique_id(self):
-#        """Return a unique ID."""
-#        return self._unique_id
-
-#    @property
-#    def device_info(self):
-#        """Return information about the device."""
-#        return {
-#            "identifiers": {(DOMAIN, self._unique_id)},
-#            "name": self._name,
-#            "model": self._model,
-#            "sw_version": self._fw_ver,
-#            "manufacturer": self._manufacturer,
-#        }
-
-        
     @property
     def state(self):
         """Return the state of the device."""
@@ -376,7 +357,7 @@ class LinkPlayDevice(MediaPlayerEntity):
 
     @property
     def source_list(self):
-        """Return the list of available input sources. If only one source exists, don't show it, as it's one and only one. WiFi shouldn't be listed."""
+        """Return the list of available input sources. If only one source exists, don't show it, as it's one and only one - WiFi shouldn't be listed."""
         if len(self._source_list) > 1:
             source_list = self._source_list.copy()
             if 'wifi' in source_list:
@@ -530,9 +511,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             else:
                 _LOGGER.warning("Failed to set volume. Got response: %s", value)
         else:
-            self._master.lpapi.call('GET',
-                                    'multiroom:SlaveVolume:{0}:{1}'.format(
-                                        self._slave_ip, str(volume)))
+            self._master.lpapi.call('GET', 'multiroom:SlaveVolume:{0}:{1}'.format(self._slave_ip, str(volume)))
             value = self._master.lpapi.data
             if value == "OK":
                 self._volume = volume
@@ -541,19 +520,15 @@ class LinkPlayDevice(MediaPlayerEntity):
 
     def mute_volume(self, mute):
         """Mute (true) or unmute (false) media player."""
-       
         if not self._slave_mode:
-            self._lpapi.call('GET',
-                             'setPlayerCmd:mute:{0}'.format(str(int(mute))))
+            self._lpapi.call('GET', 'setPlayerCmd:mute:{0}'.format(str(int(mute))))
             value = self._lpapi.data
             if value == "OK":
                 self._muted = bool(int(mute))
             else:
                 _LOGGER.warning("Failed mute/unmute volume. Got response: %s", value)
         else:
-            self._master.lpapi.call('GET',
-                                    'multiroom:SlaveMute:{0}:{1}'.format(
-                                        self._slave_ip, str(int(mute))))
+            self._master.lpapi.call('GET', 'multiroom:SlaveMute:{0}:{1}'.format(self._slave_ip, str(int(mute))))
             value = self._master.lpapi.data
             if value == "OK":
                 self._muted = bool(int(mute))
@@ -784,7 +759,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                     if value != "OK":
                         _LOGGER.warning("Failed to recall preset %s. " "Got response: %s", preset, value)
                 else:
-                    _LOGGER.warning("Wrong preset number %s. " "Has to be integer less or equal with: %s", preset, self._preset_key)
+                    _LOGGER.warning("Wrong preset number %s. " "Has to be integer between 1 and %s", preset, self._preset_key)
             else:
                 self._master.preset_button(preset)
 
@@ -844,7 +819,6 @@ class LinkPlayDevice(MediaPlayerEntity):
                         device.set_master(None)
                         device.set_media_title(None)
                         device.set_media_artist(None)
-#                        device.set_icon(ICON_DEFAULT)
                         device.set_state(STATE_IDLE)
                         device.set_media_image_url(None)
                         device.set_source(None)
@@ -1383,6 +1357,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                     self._state = STATE_IDLE
                 else:
                     self._media_title = self._source
+                    self._state = STATE_PLAYING
 
                 self._media_artist = None
                 self._media_album = None
@@ -1403,7 +1378,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._state = STATE_PLAYING
                 self._update_via_upnp()
 
-            elif self._media_uri and int(player_status['totlen']) <= 0 and player_status['mode'] != 1 and player_status['mode'] != 2 and player_status['mode'] != 3:
+            elif self._playing_stream and self._media_uri and int(player_status['totlen']) <= 0 and self._snap_source == None:
                 self._source = self._source_list.get(self._media_uri, 'WiFi')
                 if player_status['status'] != 'pause':
                     if self._skip_throttle:
@@ -1418,8 +1393,9 @@ class LinkPlayDevice(MediaPlayerEntity):
                     elif self._media_title is None or self._media_artist is None:
                         self._media_image_url = None
 
-            elif self._media_uri and self._new_song and not self._playing_stream:  # player_status['mode'] != 10:
+            elif self._media_uri and self._new_song and not self._playing_stream:
                 self._update_from_id3()
+                self._state = STATE_PLAYING
                 self._new_song = self._is_playing_new_track(player_status)
                 if self._lfmapi is not None and self._media_title is not None and self._media_artist is not None:
                     self._get_lastfm_coverart()
