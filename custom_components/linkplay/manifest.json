@@ -15,15 +15,11 @@
     "uPnPClient~=0.0",
     "validators~=0.12"
   ],
-  "ssdp": {
-    "st": [
-      "upnp:rootdevice"
-    ],
-    "manufacturer": [
-      "wiimu"
-    ],
-    "device_type": [
-      "urn:schemas-upnp-org:device:MediaRenderer:1"
-    ]
-  }
+  "ssdp": [
+    {
+      "st": "upnp:rootdevice",
+      "manufacturer": "wiimu",
+      "device_type": "urn:schemas-upnp-org:device:MediaRenderer:1"
+    }
+  ]
 }
