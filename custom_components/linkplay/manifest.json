@@ -1,12 +1,14 @@
 {
   "domain": "linkplay",
-  "name": "LinkPlay Media Player",
-  "documentation": "https://github.com/Limych/media_player.linkplay",
+  "name": "LinkPlay",
+  "documentation": "https://github.com/nagyrobi/home-assistant-custom-components-linkplay",
+  "issue_tracker": "https://github.com/nagyrobi/home-assistant-custom-components-linkplay/issues",
   "dependencies": [],
   "config_flow": false,
   "codeowners": [
     "@nicjo814",
-    "@limych"
+    "@limych",
+    "@nagyrobi"
   ],
   "requirements": [
     "eyeD3~=0.8",
