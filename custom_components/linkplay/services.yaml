@@ -1,0 +1,54 @@
+join:
+  description: Group players together in a multiroom setup.
+  fields:
+    master:
+      description: Entity ID of the player that should become the master of the group.
+      example: media_player.sound_room2
+    entity_id:
+      description: Entity ID(s) of the player(s) that will connect to the master.
+      example: media_player.sound_room1
+
+unjoin:
+  description: Unjoin a player or all players from the multiroom setup.
+  fields:
+    entity_id:
+      description: Entity ID(s) of the player(s) that will be unjoined from the group. If this is a master, all slaves will be unjoined.
+      example: media_player.sound_room2
+
+snapshot:
+  description: Prepare the player to play TTS and save the current state of it for restore afterwards. Current playback will stop.
+  fields:
+    entity_id:
+      description: Entity ID of the player of which the snapshot should be saved.
+      example: media_player.sound_room1
+    switchinput:
+      description: Switch player to stream input along with snapshotting, before playing TTS. Appicable for players with multiple inputs like Line-in, Optical, etc. Useful to handle the situation when first few seconds of the TTS message are cut off due to the latency of the player. If not specified, defaults to False.
+      example: True
+
+restore:
+  description: Restore the state of the player after playing TTS, from a saved snapshot.
+  fields:
+    entity_id:
+      description: Entity ID of the player of which the snapshot should be restored.
+      example: media_player.sound_room1
+
+preset:
+  description: Recall content preset from the device.
+  fields:
+    entity_id:
+      description: Entity ID of the player for which the preset will be recalled.
+      example: media_player.sound_room1
+    preset:
+      description: Content preset number on the device
+      example: 1
+
+command:
+  description: Execute various linkplay-specific commands on the player.
+  fields:
+    entity_id:
+      description: Entity ID of the player on which the command wil be execuded.
+      example: media_player.sound_room1
+    command:
+      description: Reboot, PromptEnable, PromptDisable, SetRandomWifiKey, WriteDeviceNameToUnit, TimeSync, RouterMultiroomEnable
+      example: SetRandomWifiKey
+
