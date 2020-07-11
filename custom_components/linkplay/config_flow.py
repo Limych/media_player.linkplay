@@ -1,5 +1,6 @@
 """Config flow for LinkPlay."""
-import media_player
+import upnpclient
+import netdisco.ssdp
 from homeassistant import config_entries
 from homeassistant.helpers import config_entry_flow
 
@@ -13,3 +14,15 @@ async def _async_has_devices(hass):
 config_entry_flow.register_discovery_flow(
     DOMAIN, "LinkPlay", _async_has_devices, config_entries.CONN_CLASS_LOCAL_PUSH
 )
+
+def upnp_discover(timeout=5):
+    devices = {}
+    for entry in netdisco.ssdp.scan(timeout):
+        if entry.location in devices:
+            continue
+        try:
+            devices[entry.location] = upnpclient.Device(entry.location)
+        except Exception as exc:
+            pass
+    return list(devices.values())
+    
