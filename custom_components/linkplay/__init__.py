@@ -51,7 +51,7 @@ REST_SERVICE_SCHEMA = vol.Schema({
 
 SNAP_SERVICE_SCHEMA = vol.Schema({
     vol.Required(ATTR_ENTITY_ID): cv.entity_id,
-    vol.Optional(ATTR_SNAP, default=False): cv.boolean
+    vol.Optional(ATTR_SNAP, default=True): cv.boolean
 })
 
 _LOGGER = logging.getLogger(__name__)
