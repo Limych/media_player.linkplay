@@ -133,7 +133,6 @@ To prepare the player to play TTS and save the current state of it for restoring
     - service: linkplay.snapshot
       data:
         entity_id: media_player.sound_room1
-        switchinput: true
 ```
 To restore the player state:
 ```yaml
@@ -179,7 +178,6 @@ To intrerupt playback of a source, say a TTS message and resume playback afterwa
     - service: linkplay.snapshot
       data:
         entity_id: media_player.sound_room1
-        switchinput: true
     - service: media_player.volume_set
       data:
         entity_id: media_player.hang_nappali
