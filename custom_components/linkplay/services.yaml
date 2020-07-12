@@ -22,7 +22,7 @@ snapshot:
       description: Entity ID of the player of which the snapshot should be saved.
       example: media_player.sound_room1
     switchinput:
-      description: Switch player to stream input along with snapshotting, before playing TTS. Appicable for players with multiple inputs like Line-in, Optical, etc. Useful to handle the situation when first few seconds of the TTS message are cut off due to the latency of the player. If not specified, defaults to False.
+      description: Switch player to stream input along with snapshotting, before playing TTS. Applies for players with multiple inputs like Line-in, Optical, etc. Useful to handle the situation when first few seconds of the TTS message are cut off due to the latency of the player. If not specified, defaults to True.
       example: True
 
 restore:
