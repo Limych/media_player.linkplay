@@ -266,10 +266,11 @@ class LinkPlayDevice(MediaPlayerEntity):
         self._ssid = None
         self._playing_spotify = False
         self._playing_stream = False
+        self._playing_files = False
         self._slave_list = None
         self._multiroom_wifidierct = multiroom_wifidierct
         self._multiroom_group = []
-        self._wait_for_fade = False
+        self._wait_for_fade = 0
         self._new_song = True
         self._unav_throttle = unavailable
         self._icecast_name = None
@@ -491,7 +492,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                     steps = 6
                 volstep = int(round(voldiff / steps))
                 voltemp = int(self._volume)
-#                self._wait_for_fade = True  # set delay in update routine for the fade to finish
+#                self._wait_for_fade = 1  # set delay in update routine for the fade to finish
                 for v in (range(0, steps - 1)):
                     voltemp = voltemp - volstep
                     self._lpapi.call('GET', 'setPlayerCmd:vol:{0}'.format(str(voltemp)))
@@ -532,12 +533,16 @@ class LinkPlayDevice(MediaPlayerEntity):
     def media_play(self):
         """Send play command."""
         if not self._slave_mode:
-            if self._prev_source != None:
+            if self._state == STATE_PAUSED:
+                self._lpapi.call('GET', 'setPlayerCmd:onepause')
+                value = self._lpapi.data            
+            
+            elif self._prev_source != None:
                 temp_source = next((k for k in self._source_list if self._source_list[k] == self._prev_source), None)
                 if temp_source == None:
                     return
 
-                if temp_source.find('http') == 0:
+                if temp_source.find('http') == 0 or temp_source == 'udisk' or temp_source == 'tfcard':
                     self.select_source(self._prev_source)
                     if self._source != None:
                         self._source = None
@@ -582,7 +587,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._lpapi.call('GET', 'setPlayerCmd:stop')
             value = self._lpapi.data
             if value == "OK":
-                self._state = STATE_IDLE
+                self._state = STATE_ON  # STATE_IDLE
                 self._media_title = None
                 self._prev_source = self._source
                 self._source = None
@@ -593,7 +598,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._media_image_url = None
                 if self._slave_list is not None:
                     for slave in self._slave_list:
-                        slave.set_state(STATE_IDLE)
+                        slave.set_state(STATE_ON)
             else:
                 _LOGGER.warning("Failed to stop playback. Got response: %s", value)
         else:
@@ -675,7 +680,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                     if len(self._source_list) > 1:
                         prev_source = next((k for k in self._source_list if self._source_list[k] == self._source), None)
                         if prev_source and prev_source.find('http') == -1:
-                            self._wait_for_fade = True
+                            self._wait_for_fade = 2
                     self._source = source
                     self._media_uri = temp_source
                     self._state = STATE_PLAYING
@@ -697,7 +702,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                 value = self._lpapi.data
                 if value == "OK":
                     self._source = source
-                    self._wait_for_fade = True
+                    self._wait_for_fade = 0.6
                     self._media_uri = None
                     self._state = STATE_PLAYING
                     if self._slave_list is not None:
@@ -808,7 +813,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                         device.set_master(None)
                         device.set_media_title(None)
                         device.set_media_artist(None)
-                        device.set_state(STATE_IDLE)
+                        device.set_state(STATE_ON)
                         device.set_media_image_url(None)
                         device.set_source(None)
 #                        device.set_media_uri(None)
@@ -841,7 +846,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._master.remove_from_group(self) 
             self._master = None
             self._slave_mode = False
-            self._state = STATE_IDLE
+            self._state = STATE_ON
             self._media_title = None
             self._media_artist = None
             self._media_uri = None
@@ -921,7 +926,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._lpapi.call('GET', 'setPlayerCmd:switchmode:wifi')
                 value = self._lpapi.data
                 if value == "OK":
-                    time.sleep(2)  # have to wait for the volume fade-in of the unit when physical source is changed, otherwise volume value will be incorrect
+                    time.sleep(2)  # have to wait for the sound fade-in of the unit when physical source is changed, otherwise volume value will be incorrect
                     player_api_result = self._get_status('getPlayerStatus', no_throttle=True)
                     if player_api_result is not None:
                         try:
@@ -1041,7 +1046,7 @@ class LinkPlayDevice(MediaPlayerEntity):
         else:
             _LOGGER.warning("Failed to run received command: %s, response %s", cmd, value)
 
-    def _is_playing_new_track(self, status):
+    def _is_playing_new_track(self):
         """Check if track is changed since last update."""
 #        _LOGGER.debug('is_playing_new_track %s _media_artist %s', self._name, self._media_artist)
 #        _LOGGER.debug('is_playing_new_track %s _media_prev_artist %s', self._name, self._media_prev_artist)
@@ -1242,12 +1247,9 @@ class LinkPlayDevice(MediaPlayerEntity):
         if self._slave_mode:
             return True
 
-        if self._wait_for_fade:  # have wait for the volume fade-in of the unit when source is changed, otherwise volume value will be incorrect
-            if self._media_uri:
-                time.sleep(2)    # switching to a stream time to display correct vol value
-            else:
-                time.sleep(.6)   # switching to a physical input time to display correct vol value
-            self._wait_for_fade = False
+        if self._wait_for_fade != 0:  # have wait for the sound fade-in of the unit when source is changed, otherwise volume value will be incorrect
+            time.sleep(self._wait_for_fade)    # switching to a stream time to display correct vol value
+                                               # switching to a physical input time to display correct vol value
 
         if self._upnp_device is None and self._devicename is not None:
             for entry in self.upnp_discover(UPNP_TIMEOUT):
@@ -1317,12 +1319,23 @@ class LinkPlayDevice(MediaPlayerEntity):
             except KeyError:
                 pass
 
+            self._sound_mode = SOUND_MODES.get(player_status['eq'])
+
+            self._shuffle = {
+                '2': True,
+                '3': True,
+            }.get(player_status['loop'], False)
+
             self._state = {
-                'stop': STATE_IDLE,
+                'stop': STATE_ON,
                 'play': STATE_PLAYING,
                 'pause': STATE_PAUSED,
                 'load': STATE_PLAYING,
             }.get(player_status['status'], STATE_UNKNOWN)
+
+            self._playing_spotify = bool(player_status['mode'] == '31')
+            self._playing_stream = bool(player_status['mode'] == '10')
+            self._playing_files = bool(player_status['mode'] == '11')
             
             source_t = SOURCES_MAP.get(player_status['mode'], 'WiFi')
             source_n = self._source_list.get(source_t.lower(), None)
@@ -1332,10 +1345,10 @@ class LinkPlayDevice(MediaPlayerEntity):
             else:
                 self._source = source_t
             
-            if self._source != "WiFi" and not self._media_uri:
+            if self._source != "WiFi" and not (self._playing_stream or self._playing_files):
                 if self._source == "Idle":
                     self._media_title = None
-                    self._state = STATE_IDLE
+                    self._state = STATE_ON
                 else:
                     self._media_title = self._source
                     self._state = STATE_PLAYING
@@ -1345,20 +1358,34 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._media_image_url = None
                 self._icecast_name = None
 
-            self._sound_mode = SOUND_MODES.get(player_status['eq'])
-
-            self._shuffle = {
-                '2': True,
-                '3': True,
-            }.get(player_status['loop'], False)
-
-            self._playing_spotify = bool(player_status['mode'] == '31')
-            self._playing_stream = bool(player_status['mode'] == '10')
-            
             if self._playing_spotify:
                 self._state = STATE_PLAYING
                 self._update_via_upnp()
 
+            elif self._playing_files:
+                if player_status['Title'] != '':
+                    filnam = str(bytearray.fromhex(player_status['Title']).decode('utf-8'))
+                    stopwords = ['mp3', 'mp2', 'm2a', 'mpg', 'wav', 'aac', 'flac', 'flc', 'm4a', 'ape', 'ogg']
+                    querywords = filnam.split('.')
+                    resultwords  = [word for word in querywords if word.lower() not in stopwords]
+                    title = ' '.join(resultwords)
+                    title.replace('_', ' ')
+                    #title.strip('-')
+                    if title.find(' - ') != -1:
+                        titles = title.split(' - ')
+                        self._media_artist = titles[0].strip().strip('-')
+                        self._media_title = titles[1].strip().strip('-')
+                    else:
+                        self._media_artist = None
+                        self._media_title = title.strip().strip('-')
+                    self._new_song = self._is_playing_new_track()
+                    if self._lfmapi is not None and self._new_song and self._media_title is not None and self._media_artist is not None:
+                        self._get_lastfm_coverart()
+                    elif self._media_title is None or self._media_artist is None:
+                        self._media_image_url = None
+                else:
+                    self._media_title = self._source
+                                    
             elif self._playing_stream and self._media_uri and int(player_status['totlen']) <= 0 and self._snap_source == None:
                 self._source = self._source_list.get(self._media_uri, 'WiFi')
                 if player_status['status'] != 'pause':
@@ -1367,7 +1394,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                         self._ice_skip_throt = False
                     else:
                         self._update_from_icecast()
-                    self._new_song = self._is_playing_new_track(player_status)
+                    self._new_song = self._is_playing_new_track()
                     self._state = STATE_PLAYING
                     if self._lfmapi is not None and self._new_song and self._media_title is not None and self._media_artist is not None:
                         self._get_lastfm_coverart()
@@ -1377,7 +1404,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             elif self._media_uri and self._new_song and not self._playing_stream:
                 self._update_from_id3()
                 self._state = STATE_PLAYING
-                self._new_song = self._is_playing_new_track(player_status)
+                self._new_song = self._is_playing_new_track()
                 if self._lfmapi is not None and self._media_title is not None and self._media_artist is not None:
                     self._get_lastfm_coverart()
                 else:
