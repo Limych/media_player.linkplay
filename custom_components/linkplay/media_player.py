@@ -57,7 +57,7 @@ CONF_MULTIROOM_WIFIDIRECT = 'multiroom_wifidirect'
 LASTFM_API_BASE = 'http://ws.audioscrobbler.com/2.0/?method='
 MAX_VOL = 100
 FW_MROOM_RTR_MIN = '4.2.8020'
-UPNP_TIMEOUT = 3
+UPNP_TIMEOUT = 2
 TCPPORT = 8899
 ICE_THROTTLE = timedelta(seconds=60)
 UNA_THROTTLE = timedelta(seconds=60)
@@ -680,7 +680,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                     if len(self._source_list) > 1:
                         prev_source = next((k for k in self._source_list if self._source_list[k] == self._source), None)
                         if prev_source and prev_source.find('http') == -1:
-                            self._wait_for_fade = 2
+                            self._wait_for_fade = 2  # switching to a stream input -> time to display correct volume value
                     self._source = source
                     self._media_uri = temp_source
                     self._state = STATE_PLAYING
@@ -702,7 +702,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                 value = self._lpapi.data
                 if value == "OK":
                     self._source = source
-                    self._wait_for_fade = 0.6
+                    self._wait_for_fade = 0.6  # switching to a physical input -> time to display correct volume value
                     self._media_uri = None
                     self._state = STATE_PLAYING
                     if self._slave_list is not None:
@@ -1053,7 +1053,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             artmed = unicodedata.normalize('NFKD', str(self._media_artist) + str(self._media_title)).lower()
             artmedd = u"".join([c for c in artmed if not unicodedata.combining(c)])
             if artmedd.find(self._icecast_name.lower()) != -1:
-                # don't trigger new track flag for icecast streams where track name contains station name; save some energy for last.fm
+                # don't trigger new track flag for icecast streams where track name contains station name; save some energy by not quering last.fm with this
                 self._media_image_url = None
                 return False
 
@@ -1249,8 +1249,9 @@ class LinkPlayDevice(MediaPlayerEntity):
             return True
 
         if self._wait_for_fade != 0:  # have wait for the sound fade-in of the unit when source is changed, otherwise volume value will be incorrect
-            time.sleep(self._wait_for_fade)    # switching to a stream time to display correct vol value
-                                               # switching to a physical input time to display correct vol value
+            _LOGGER.debug("Wait for fade: %s", self._wait_for_fade)
+            time.sleep(self._wait_for_fade)
+            self._wait_for_fade = 0
 
         if self._upnp_device is None and self._devicename is not None:
             for entry in self.upnp_discover(UPNP_TIMEOUT):
@@ -1270,6 +1271,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             # _LOGGER.warning('Unable to connect to device')
             self._unav_throttle = True
             self._state = STATE_UNAVAILABLE
+            self._media_title = None
             self._media_artist = None
             self._media_album = None
             self._media_image_url = None
@@ -1301,13 +1303,14 @@ class LinkPlayDevice(MediaPlayerEntity):
                         self._ssid = binascii.hexlify(device_status['ssid'].encode('utf-8'))
                         self._ssid = self._ssid.decode()
     
-            if player_status['mode'] == 99:
+            self._volume = player_status['vol']
+            self._muted = bool(int(player_status['mute'])) 
+            self._sound_mode = SOUND_MODES.get(player_status['eq'])
+
+            if player_status['mode'] == '99':
                 self._slave_mode = True
                 return True
 
-            # Update variables that changes during playback of a track.
-            self._volume = player_status['vol']
-            self._muted = bool(int(player_status['mute'])) 
             self._seek_position = int(int(player_status['curpos']) / 1000)
             self._position_updated_at = utcnow()
 
@@ -1319,8 +1322,6 @@ class LinkPlayDevice(MediaPlayerEntity):
 
             except KeyError:
                 pass
-
-            self._sound_mode = SOUND_MODES.get(player_status['eq'])
 
             self._shuffle = {
                 '2': True,
