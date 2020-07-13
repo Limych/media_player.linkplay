@@ -28,7 +28,7 @@ from homeassistant.components.media_player.const import (
     SUPPORT_SELECT_SOUND_MODE, SUPPORT_SELECT_SOURCE, SUPPORT_SHUFFLE_SET,
     SUPPORT_VOLUME_MUTE, SUPPORT_VOLUME_SET, SUPPORT_STOP)
 from homeassistant.const import (
-    ATTR_ENTITY_ID, ATTR_DEVICE_CLASS, CONF_HOST, CONF_NAME, STATE_PAUSED, STATE_PLAYING, STATE_ON, STATE_IDLE, STATE_UNKNOWN, STATE_UNAVAILABLE)
+    ATTR_ENTITY_ID, ATTR_DEVICE_CLASS, CONF_HOST, CONF_NAME, STATE_PAUSED, STATE_PLAYING, STATE_ON, STATE_UNKNOWN, STATE_UNAVAILABLE)
 from homeassistant.util.dt import utcnow
 from homeassistant.util import Throttle
 from . import VERSION, ISSUE_URL, DOMAIN, ATTR_MASTER
@@ -266,7 +266,8 @@ class LinkPlayDevice(MediaPlayerEntity):
         self._ssid = None
         self._playing_spotify = False
         self._playing_stream = False
-        self._playing_files = False
+        self._playing_usb = False
+        self._playing_sd = False
         self._slave_list = None
         self._multiroom_wifidierct = multiroom_wifidierct
         self._multiroom_group = []
@@ -571,7 +572,6 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._lpapi.call('GET', 'setPlayerCmd:onepause')
             value = self._lpapi.data
             if value == "OK":
-                _LOGGER.warning("presed pause for: %s", self.entity_id)
                 self._state = STATE_PAUSED
                 if self._slave_list is not None:
                     for slave in self._slave_list:
@@ -1048,10 +1048,15 @@ class LinkPlayDevice(MediaPlayerEntity):
 
     def _is_playing_new_track(self):
         """Check if track is changed since last update."""
-#        _LOGGER.debug('is_playing_new_track %s _media_artist %s', self._name, self._media_artist)
-#        _LOGGER.debug('is_playing_new_track %s _media_prev_artist %s', self._name, self._media_prev_artist)
-#        _LOGGER.debug('is_playing_new_track %s _media_title %s', self._name, self._media_title)
-#        _LOGGER.debug('is_playing_new_track %s _media_prev_title %s', self._name, self._media_prev_title)
+        if self._icecast_name != None:
+            import unicodedata
+            artmed = unicodedata.normalize('NFKD', str(self._media_artist) + str(self._media_title)).lower()
+            artmedd = u"".join([c for c in artmed if not unicodedata.combining(c)])
+            if artmedd.find(self._icecast_name.lower()) != -1:
+                # don't trigger new track flag for icecast streams where track name contains station name; save some energy for last.fm
+                self._media_image_url = None
+                return False
+
         if self._media_artist != self._media_prev_artist or self._media_title != self._media_prev_title:
             return True
         else:
@@ -1066,8 +1071,6 @@ class LinkPlayDevice(MediaPlayerEntity):
     def _update_via_upnp(self):
         """Update track info via UPNP."""
         import validators
-#        self._media_prev_artist = self._media_artist
-#        self._media_prev_title = self._media_title
         self._media_title = None
         self._media_album = None
         self._media_artist = None
@@ -1109,8 +1112,6 @@ class LinkPlayDevice(MediaPlayerEntity):
         try:
             filename, _ = urllib.request.urlretrieve(self._media_uri)
             audiofile = eyed3.load(filename)
-#            self._media_prev_artist = self._media_artist
-#            self._media_prev_title = self._media_title
             self._media_title = audiofile.tag.title
             self._media_artist = audiofile.tag.artist
             self._media_album = audiofile.tag.album
@@ -1328,14 +1329,15 @@ class LinkPlayDevice(MediaPlayerEntity):
 
             self._state = {
                 'stop': STATE_ON,
+                'load': STATE_PLAYING,
                 'play': STATE_PLAYING,
                 'pause': STATE_PAUSED,
-                'load': STATE_PLAYING,
             }.get(player_status['status'], STATE_UNKNOWN)
 
             self._playing_spotify = bool(player_status['mode'] == '31')
             self._playing_stream = bool(player_status['mode'] == '10')
-            self._playing_files = bool(player_status['mode'] == '11')
+            self._playing_usb = bool(player_status['mode'] == '11')
+            self._playing_sd = bool(player_status['mode'] == '16')
             
             source_t = SOURCES_MAP.get(player_status['mode'], 'WiFi')
             source_n = self._source_list.get(source_t.lower(), None)
@@ -1345,7 +1347,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             else:
                 self._source = source_t
             
-            if self._source != "WiFi" and not (self._playing_stream or self._playing_files):
+            if self._source != "WiFi" and not (self._playing_stream or self._playing_usb or self._playing_sd):
                 if self._source == "Idle":
                     self._media_title = None
                     self._state = STATE_ON
@@ -1362,12 +1364,21 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._state = STATE_PLAYING
                 self._update_via_upnp()
 
-            elif self._playing_files:
-                if player_status['Title'] != '':
+            elif self._playing_usb or self._playing_sd:
+                
+                if player_status['Title'] != '756E6B6E6F776E' and player_status['Artist'] != '756E6B6E6F776E':  # '756E6B6E6F776E' - 'unknown'
+                    if player_status['Title'] != '':
+                        self._media_title = str(bytearray.fromhex(player_status['Title']).decode('utf-8'))
+                    if player_status['Artist'] != '':
+                        self._media_artist = str(bytearray.fromhex(player_status['Artist']).decode('utf-8'))
+                    if player_status['Album'] != '':
+                        self._media_album = str(bytearray.fromhex(player_status['Album']).decode('utf-8'))
+                
+                elif player_status['Title'] != '':
                     filnam = str(bytearray.fromhex(player_status['Title']).decode('utf-8'))
-                    stopwords = ['mp3', 'mp2', 'm2a', 'mpg', 'wav', 'aac', 'flac', 'flc', 'm4a', 'ape', 'ogg']
+                    cutext = ['mp3', 'mp2', 'm2a', 'mpg', 'wav', 'aac', 'flac', 'flc', 'm4a', 'ape', 'ogg']
                     querywords = filnam.split('.')
-                    resultwords  = [word for word in querywords if word.lower() not in stopwords]
+                    resultwords  = [word for word in querywords if word.lower() not in cutext]
                     title = ' '.join(resultwords)
                     title.replace('_', ' ')
                     #title.strip('-')
@@ -1378,14 +1389,20 @@ class LinkPlayDevice(MediaPlayerEntity):
                     else:
                         self._media_artist = None
                         self._media_title = title.strip().strip('-')
-                    self._new_song = self._is_playing_new_track()
-                    if self._lfmapi is not None and self._new_song and self._media_title is not None and self._media_artist is not None:
-                        self._get_lastfm_coverart()
-                    elif self._media_title is None or self._media_artist is None:
-                        self._media_image_url = None
+                    self._media_album = None
+                    
                 else:
                     self._media_title = self._source
+                    self._media_artist = None
+                    self._media_album = None
                                     
+                self._new_song = self._is_playing_new_track()
+                if self._lfmapi is not None and self._new_song and self._media_title is not None and self._media_artist is not None:
+                    self._get_lastfm_coverart()
+                elif self._media_title is None or self._media_artist is None:
+                    self._media_image_url = None
+
+
             elif self._playing_stream and self._media_uri and int(player_status['totlen']) <= 0 and self._snap_source == None:
                 self._source = self._source_list.get(self._media_uri, 'WiFi')
                 if player_status['status'] != 'pause':
