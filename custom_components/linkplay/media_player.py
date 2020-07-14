@@ -159,10 +159,6 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
         if resp_json is not None and isinstance(resp_json, dict):
             name = resp_json['DeviceName']
             fw_ver = resp_json['firmware']
-            unique_id = resp_json['uuid']
-            model = resp_json['hardware']
-            mac_address = resp_json['STA_MAC']
-            manufacturer = resp_json['project']
             preset_key = int(resp_json['preset_key'])
             unavailable = False
             _LOGGER.info("Device Name detected: %s, firmware: %s", name, fw_ver)
@@ -175,10 +171,6 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
         
     if unavailable:
         fw_ver = None
-        unique_id = None
-        model = None
-        mac_address = None
-        manufacturer = None
         preset_key = None
         _LOGGER.info("Device unavailable, name from config: %s", name)
 
@@ -190,10 +182,6 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
                               config.get(CONF_MULTIROOM_WIFIDIRECT),
                               unavailable,
                               fw_ver,
-                              unique_id,
-                              model,
-                              mac_address,
-                              manufacturer,
                               preset_key,
                               config.get(CONF_LASTFM_API_KEY))
     
@@ -210,20 +198,12 @@ class LinkPlayDevice(MediaPlayerEntity):
                  multiroom_wifidierct, 
                  unavailable,
                  fw_ver, 
-                 unique_id,
-                 model,
-                 mac_address,
-                 manufacturer,
                  preset_key, 
                  lfm_api_key=None
                  ):
         """Initialize the LinkPlay device."""
         self._fw_ver = fw_ver
-        self._unique_id = unique_id
-        self._model = model
         self._features = None
-        self._mac_address = mac_address
-        self._manufacturer = manufacturer
         self._preset_key = preset_key
         self._name = name #dev_name
         self._devicename = name
