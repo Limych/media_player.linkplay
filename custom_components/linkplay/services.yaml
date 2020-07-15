@@ -49,6 +49,6 @@ command:
       description: Entity ID of the player on which the command wil be execuded.
       example: media_player.sound_room1
     command:
-      description: Reboot, PromptEnable, PromptDisable, SetRandomWifiKey, WriteDeviceNameToUnit, TimeSync, RouterMultiroomEnable
-      example: SetRandomWifiKey
+      description: Reboot, Rescan, PromptEnable, PromptDisable, SetRandomWifiKey, WriteDeviceNameToUnit, TimeSync, RouterMultiroomEnable
+      example: Rescan
 
