@@ -25,7 +25,6 @@ This **will overwrite** the previous **Linkplay Sound Devices Integration** comp
         - platform: linkplay
           host: 192.168.1.11
           name: Sound Room1
-          device_name: Room1
           icecast_metadata: 'StationNameSongTitle'
           multiroom_wifidirect: False
           sources: 
@@ -41,7 +40,6 @@ This **will overwrite** the previous **Linkplay Sound Devices Integration** comp
         - platform: linkplay
           host: 192.168.1.12
           name: Sound Room2
-          device_name: Room2
           icecast_metadata: 'Off'  # valid values: 'Off', 'StationName', 'StationNameSongTitle'
           sources: 
             {
@@ -55,10 +53,7 @@ This **will overwrite** the previous **Linkplay Sound Devices Integration** comp
   *(string)* *(Required)* The host name or IP address of the Linkplay unit.
 
 **name:**\
-  *(string)* *(Required)* Name to use in the frontend. Nothe that Home Assistant will generate the `entity_id` based on this.
-
-**device_name:**\
-  *(string)* *(Optional)* The name of the device, as it setted up in the official application. Recent firwmares will publish this, if so, it will be overwitten from there.
+  *(string)* *(Required)* Name that Home Assistant will generate the `entity_id` based on. It is also the base of the friendly name seen in Lovelace UI, but will be overriden by the device name set in the Android app.
 
 **icecast_metadata:**\
   *(string)* *(Optional)* When playing icecast webradio streams, how to handle metadata. Valid values here are `'Off'`, `'StationName'`, `'StationNameSongTitle'`, defaulting to `'StationName'` when not set. With `'Off'`, Home Assistant will not try do request any metadata from the IceCast server. With `'StationName'`, Home Assistant will request from the headers only once when starting the playback the stream name, and display it in the `media_title` property of the player. With `'StationNameSongTitle'` Home Assistant will request the stream server periodically for icy-metadata, and read out `StreamTitle`, trying to figure out correct values for `media_title` and `media_artist`, in order to gather cover art information from LastFM service (see below). The stream name (usually the name of the radio station) will be placed in the `friendly_name` property of the player while playing. Note that this depends on how the icecast radio station servers and encoders are configured, if they don't provide proper metadata, it's better to turn it off or just use StationName to save server load.
