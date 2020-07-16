@@ -1,6 +1,6 @@
-# LinkPlay devices integration v2
+# Linkplay devices integration v2
 
-This component allows you to integrate control of audio devices based on LinkPlay chipset into your [Home-Assistant](http://www.home-assistant.io) smart home system. Originally developed by nicjo814, maintained by limych. This version partly rewritten by nagyrobi. Read more about LinkPlay at the bottom of this file.
+This component allows you to integrate control of audio devices based on Linkplay chipset into your [Home-Assistant](http://www.home-assistant.io) smart home system. Originally developed by nicjo814, maintained by limych. This version partly rewritten by nagyrobi. Read more about Linkplay at the bottom of this file.
 
 Fully compatible with [Mini Media Player card for Lovelace UI](https://github.com/kalkih/mini-media-player) by kalkih, including speaker group management.
 
@@ -11,13 +11,13 @@ Fully compatible with [Mini Media Player card for Lovelace UI](https://github.co
 * Restart Home-Assistant again.
 
 ### Warning !!!
-This **will overwrite** the previous **LinkPlay Sound Devices Integration** component if you had it installed. Also the configuration settings are not backwards compatible so **you will have to adjust** them as documented below otherwise it may break your system. To avoid this, make a backup of your previous linkplay config and remove it from your Home Assistant instance. Also uninstall/delete the previous linkplay component and restart Home Assistant.
+This **will overwrite** the previous **Linkplay Sound Devices Integration** component if you had it installed. Also the configuration settings are not backwards compatible so **you will have to adjust** them as documented below otherwise it may break your system. To avoid this, make a backup of your previous linkplay config and remove it from your Home Assistant instance. Also uninstall/delete the previous linkplay component and restart Home Assistant.
 
 [Support forum](https://community.home-assistant.io/t/linkplay-integration/33878/133)
 
 ### Example configuration entry
 
-1. To add LinkPlay device to your installation, add the following to your `configuration.yaml` file:
+1. To add Linkplay device to your installation, add the following to your `configuration.yaml` file:
 
     ```yaml
     # Example configuration.yaml entry
@@ -114,6 +114,7 @@ To exit from multiroom, use the entity ids of the players that need to be unjoin
       data:
         entity_id: media_player.sound_room1
 ```
+The services are compatible out of the box with @kalkih's [Mini Media Player](https://github.com/kalkih/mini-media-player) card for Lovelace UI.
 
 ## Recall device music presets
 
@@ -204,6 +205,7 @@ Linkplay devices support some commands through the API, this is a wrapper to be 
 ```
 Implemented commands:
 - `Reboot` - as name implies
+- `Rescan` - do not wait for the current 60 second throttle cycle to reconnect to the unavailable devices, trigger testing for availability immediately
 - `PromptEnable` and `PromptDisable` - enable or disable the audio prompts played through the speakers when connecting to the network or joining multiroom etc.
 - `SetRandomWifiKey`- just as an extra security feature, one could make an automation to change the keys on the linkplay APs to some random values periodically.
 - `WriteDeviceNameToUnit` - write the name configured in Home Assistant to the player’s firmware so that the names would match exactly in order to have multiroom in wifi direct mode fully operational (not needed for router mode)
@@ -213,10 +215,10 @@ Implemented commands:
 Results will appear in Lovelace UI's left pane as persistent notifications which can be dismissed.
 
 
-## About LinkPlay
+## About Linkplay
 
-LinkPlay is a smart audio chipset and module manufacturer. Their various module types share the same functionality across the whole platform and alow for native audio content playback from lots of sources, including local inputs, local files, Bluetooth, DNLA, Airplay and also web-based services like Icecast, Spotify, Tune-In, Deezer, Tidal etc. They allow setting up multiroom listening environments using either self-created wireless connections or relying on existing network infrastructure, for longer distances coverage. For more information visit https://linkplay.com/.
-There are quite a few manufacturers and devices that operate on the basis of LinkPlay platform. Here are just some examples of the brands and models:
+Linkplay is a smart audio chipset and module manufacturer. Their various module types share the same functionality across the whole platform and alow for native audio content playback from lots of sources, including local inputs, local files, Bluetooth, DNLA, Airplay and also web-based services like Icecast, Spotify, Tune-In, Deezer, Tidal etc. They allow setting up multiroom listening environments using either self-created wireless connections or relying on existing network infrastructure, for longer distances coverage. For more information visit https://linkplay.com/.
+There are quite a few manufacturers and devices that operate on the basis of Linkplay platform. Here are just some examples of the brands and models:
 - **Arylic** (S50Pro, A50, Up2Stream),
 - **August** (WS300G),
 - **Audio Pro** (A10, A40, Addon C3/C5/C5A/C10/C-SUB, D-1, Drumfire, Link 1),
