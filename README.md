@@ -64,7 +64,7 @@ This **will overwrite** the previous **Linkplay Sound Devices Integration** comp
   *(string)* *(Optional)* When playing icecast webradio streams, how to handle metadata. Valid values here are `'Off'`, `'StationName'`, `'StationNameSongTitle'`, defaulting to `'StationName'` when not set. With `'Off'`, Home Assistant will not try do request any metadata from the IceCast server. With `'StationName'`, Home Assistant will request from the headers only once when starting the playback the stream name, and display it in the `media_title` property of the player. With `'StationNameSongTitle'` Home Assistant will request the stream server periodically for icy-metadata, and read out `StreamTitle`, trying to figure out correct values for `media_title` and `media_artist`, in order to gather cover art information from LastFM service (see below). The stream name (usually the name of the radio station) will be placed in the `friendly_name` property of the player while playing. Note that this depends on how the icecast radio station servers and encoders are configured, if they don't provide proper metadata, it's better to turn it off or just use StationName to save server load.
 
 **multiroom_wifidirect:**\
-  *(boolean)* *(Optional)* Set to `True` to override the default router mode of multiroom connection, and force the old wifi-direct method. Units with firmware version lower than v4.2.8020 will be autodetected and they connect to multirooms only in wifi-direct mode. This option is needed only for units with newer versions if the user has a mix of players running old and new firmware.
+  *(boolean)* *(Optional)* Set to `True` to override the default router mode used by the component with the wifi-direct connection mode (more details below).
 
 **lastfm_api_key:**\
   *(string)* *(Optional)* API key to LastFM service to get album covers. Register for one.
@@ -96,25 +96,25 @@ At least one source should be present if you use the `sources:` option, for unit
 ## Multiroom
 
 Linkplay devices support multiroom in two modes:
-- WiFi direct mode, where the master turns into a hidden AP and the slaves connect diretcly to that (legacy, below firmware v4.2.8020)
-- Router mode, where the master and slaves connect to each other through the local network (faster but relying on your infrastructure).
+- WiFi direct mode, where the master turns into a hidden AP and the slaves connect diretcly to that (legacy, below firmware v4.2.8020). The advantage is that this is a dedicated direct connection between the speakers, with network parameters optimized by the factory for streaming. Disadvantage is that switching of the stream is slower, plus the coverage can be limited due to the building's specifics. This is the default method used by the Android app to create multirooms.
+- Router mode, where the master and slaves connect to each other through the local network. The advantage is that all speakers remain connected to the existing network, swicthing the stream happens faster, and the coverage can be bigger being ensured by the network infrastructure of the building (works through multiple interconnected APs and switches). Disadvantage is that the network is not dedicated and it's the user responsibility to provide proper network infrastructure.
 
-This integration will autodetect the firmware version running on the player and choose multiroom mode accordingly. Firmware version number can be seen in device attributes. Can be overriden with option `multiroom_wifidirect: True` (see above).
+This integration will autodetect the firmware version running on the player and choose multiroom mode accordingly. Units with firmware version lower than v4.2.8020 will be autodetected and they connect to multirooms only in wifi-direct mode. Firmware version number can be seen in device attributes. Can be overriden with option `multiroom_wifidirect: True`, and is needed only for units with newer versions if the user has a mix of players running old and new firmware.
 
-To create a multiroom system, connect `media_player.sound_room2` (slave) to `media_player.sound_room1` (master):
+To create a multiroom group, connect `media_player.sound_room2` (slave) to `media_player.sound_room1` (master):
 ```yaml
     - service: linkplay.join
       data:
         entity_id: media_player.sound_room2
         master: media_player.sound_room1
 ```
-To exit from multiroom, use the entity ids of the players that need to be unjoined from the group. If this is the entity of a master, all slaves will be disconnected:
+To exit from the multiroom group, use the entity ids of the players that need to be unjoined. If this is the entity of a master, all slaves will be disconnected:
 ```yaml
     - service: linkplay.unjoin
       data:
         entity_id: media_player.sound_room1
 ```
-The services are compatible out of the box with @kalkih's [Mini Media Player](https://github.com/kalkih/mini-media-player) card for Lovelace UI.
+These services are compatible out of the box with the gpeaker group object in @kalkih's [Mini Media Player](https://github.com/kalkih/mini-media-player) card for Lovelace UI.
 
 ## Recall device music presets
 
@@ -196,7 +196,7 @@ To intrerupt playback of a source, say a TTS message and resume playback afterwa
 
 ## Specific commands
 
-Linkplay devices support some commands through the API, this is a wrapper to be able to use these in Home Assistant scripts of automations if needed:
+Linkplay devices support some commands through the API, this is a wrapper to be able to use these in Home Assistant:
 ```yaml
     - service: linkplay.command
       data:
