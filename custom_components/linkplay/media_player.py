@@ -11,26 +11,24 @@ from json import loads, dumps
 import upnpclient
 import netdisco.ssdp
 import logging
-import os
-import tempfile
 import urllib.request
 import xml.etree.ElementTree as ET
 import time
 from datetime import timedelta
 import socket
-import homeassistant.helpers.config_validation as cv
 import requests
 import voluptuous as vol
+import homeassistant.helpers.config_validation as cv
+from homeassistant.util.dt import utcnow
+from homeassistant.util import Throttle
+from homeassistant.const import (
+    ATTR_ENTITY_ID, ATTR_DEVICE_CLASS, CONF_HOST, CONF_NAME, STATE_PAUSED, STATE_PLAYING, STATE_IDLE, STATE_UNKNOWN, STATE_UNAVAILABLE)
 from homeassistant.components.media_player import (DEVICE_CLASS_SPEAKER, MediaPlayerEntity)
 from homeassistant.components.media_player.const import (
-    DOMAIN, MEDIA_TYPE_MUSIC, SUPPORT_NEXT_TRACK, SUPPORT_PAUSE, SUPPORT_PLAY,
+    DOMAIN, MEDIA_TYPE_MUSIC, MEDIA_TYPE_URL, SUPPORT_NEXT_TRACK, SUPPORT_PAUSE, SUPPORT_PLAY,
     SUPPORT_PLAY_MEDIA, SUPPORT_PREVIOUS_TRACK, SUPPORT_SEEK,
     SUPPORT_SELECT_SOUND_MODE, SUPPORT_SELECT_SOURCE, SUPPORT_SHUFFLE_SET,
     SUPPORT_VOLUME_MUTE, SUPPORT_VOLUME_SET, SUPPORT_STOP)
-from homeassistant.const import (
-    ATTR_ENTITY_ID, ATTR_DEVICE_CLASS, CONF_HOST, CONF_NAME, STATE_PAUSED, STATE_PLAYING, STATE_IDLE, STATE_UNKNOWN, STATE_UNAVAILABLE)
-from homeassistant.util.dt import utcnow
-from homeassistant.util import Throttle
 from . import VERSION, ISSUE_URL, DOMAIN, ATTR_MASTER
 
 _LOGGER = logging.getLogger(__name__)
@@ -112,12 +110,13 @@ SOURCES_MAP = {'-1': 'Idle',
                '48': 'XLR',
                '49': 'HDMI',
                '50': 'CD/Mirror',
+               '52': 'TFcard',
                '60': 'Talk',
-               '52': 'TFcard'}
+               '99': 'Idle'}
 
-SOURCES_LIVEIN = ['-1', '0', '40', '41', '43', '44', '45', '46', '47', '48', '49', '50']
+SOURCES_LIVEIN = ['-1', '0', '40', '41', '43', '44', '45', '46', '47', '48', '49', '50', '99']
 SOURCES_STREAM = ['1', '2', '3', '10', '30']
-SOURCES_LOCALF = ['11', '16', '20', '21', '52', '31', '60', '99']
+SOURCES_LOCALF = ['11', '16', '20', '21', '52', '31', '60']
 
 class LinkPlayData:
     """Storage class for platform global data."""
@@ -134,69 +133,11 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     if DOMAIN not in hass.data:
         hass.data[DOMAIN] = LinkPlayData()
         
-#    resource = "http://{0}/httpapi.asp?command=getStatus".format(config.get(CONF_HOST))
-#    rqst = requests.Request("GET", resource).prepare()
-    
-#    _LOGGER.debug("Getting DeviceName from %s", config.get(CONF_HOST))
-#    try:
-#        with requests.Session() as sess:
-#            response = sess.send(rqst, timeout=2)
-#        resp_data = response.text
-#    except requests.exceptions.RequestException as ex:
-#        # _LOGGER.warning("Error fetching data: %s from %s failed with %s", self._request, self._request.url, ex)
-#        resp_data = None
-#        unavailable = True
-
-#    if resp_data is not None:
-#        try:
-#            resp_json = json.loads(resp_data)
-#        except ValueError:
-#            # _LOGGER.warning("REST result could not be parsed as JSON")
-#            _LOGGER.debug("Erroneous JSON: %s", device_api_result)
-#            resp_json = None
-#            unavailable = True
-
-#        if resp_json is not None and isinstance(resp_json, dict):
-#            try:
-#                name = resp_json['DeviceName']
-#            except KeyError:
-#                name = config.get(CONF_NAME)
-#            try:
-#                uuid = resp_json['uuid']  # FF31F09E - Arylic
-#            except KeyError:
-#                uuid = None
-#            try:
-#                fw_ver = resp_json['firmware']
-#            except KeyError:
-#                fw_ver = '1.0.0'
-#            try:
-#                preset_key = int(resp_json['preset_key'])
-#            except KeyError:
-#                preset_key = 4
-#            unavailable = False
-#            _LOGGER.info("Device Name detected: %s, firmware: %s", name, fw_ver)
-#        else:
-#            name = config.get(CONF_NAME)
-#            unavailable = True
-#    else:
-#        name = config.get(CONF_NAME)
-#        unavailable = True
-        
-#    if unavailable:
-#        fw_ver = None
-#        preset_key = None
-#        _LOGGER.info("Device unavailable, name from config: %s", name)
-
     linkplay = LinkPlayDevice(config.get(CONF_HOST),
-                              config.get(CONF_NAME),  # name,
-#                              name,
+                              config.get(CONF_NAME),
                               config.get(CONF_SOURCES),
                               config.get(CONF_ICECAST_METADATA),
                               config.get(CONF_MULTIROOM_WIFIDIRECT),
-#                              unavailable,
-#                              fw_ver,
-#                              uuid,
-#                              preset_key,
                               config.get(CONF_LASTFM_API_KEY))
     
     add_entities([linkplay])
@@ -206,22 +147,17 @@ class LinkPlayDevice(MediaPlayerEntity):
     def __init__(self, 
                  host, 
                  name,
-#                 dev_name,
                  sources, 
                  icecast_meta, 
                  multiroom_wifidierct, 
-#                 unavailable,
-#                 fw_ver,
-#                 uuid,
-#                 preset_key, 
                  lfm_api_key=None
                  ):
         """Initialize the LinkPlay device."""
-        self._fw_ver = '1.0.0'  # fw_ver
-        self._uuid = None  # uuid
+        self._fw_ver = '1.0.0'
+        self._uuid = None
         self._features = None
-        self._preset_key = 4  # preset_key
-        self._name = name #dev_name
+        self._preset_key = 4
+        self._name = name
         self._host = host
         self._icon = ICON_DEFAULT
         self._state = STATE_UNAVAILABLE
@@ -265,22 +201,17 @@ class LinkPlayDevice(MediaPlayerEntity):
         self._playing_stream = False
         self._playing_localfile = True
         self._slave_list = None
-        self._multiroom_wifidierct = False  # multiroom_wifidierct
+        self._multiroom_wifidierct = False
         self._multiroom_group = []
         self._wait_for_mcu = 0
-        self._skip_cycle = False
         self._new_song = True
-        self._unav_throttle = False  # unavailable
+        self._unav_throttle = False
         self._icecast_name = None
         self._icecast_meta = icecast_meta
         self._ice_skip_throt = False
         self._snap_source = None
         self._snap_state = STATE_UNKNOWN
         self._snap_volume = 0
-
-#        if not self._multiroom_wifidierct and self._fw_ver:
-#            if self._fwvercheck(self._fw_ver) < self._fwvercheck(FW_MROOM_RTR_MIN):
-#                self._multiroom_wifidierct = True
 
     async def async_added_to_hass(self):
         """Record entity."""
@@ -300,7 +231,7 @@ class LinkPlayDevice(MediaPlayerEntity):
     @property
     def icon(self):
         """Return the icon of the device."""
-        if self._muted or self._state == STATE_PAUSED or self._state == STATE_UNAVAILABLE:
+        if self._muted or self._state in [STATE_PAUSED, STATE_UNAVAILABLE]:
             return ICON_MUTED
         
         if self._slave_mode or self._is_master:
@@ -316,11 +247,6 @@ class LinkPlayDevice(MediaPlayerEntity):
             return ICON_PLAYING
             
         return ICON_DEFAULT
-
-    @property
-    def fw_ver(self):
-        """Return the firmware version number of the device."""
-        return self._fw_ver
 
     @property
     def state(self):
@@ -340,7 +266,10 @@ class LinkPlayDevice(MediaPlayerEntity):
     @property
     def source(self):
         """Return the current input source."""
-        return self._source
+        if self._source not in ['Idle', 'WiFi']:
+            return self._source
+        else:
+            return None
 
     @property
     def source_list(self):
@@ -371,12 +300,19 @@ class LinkPlayDevice(MediaPlayerEntity):
             return self._features
         
         if self._playing_localfile or self._playing_spotify:
-            self._features = \
-            SUPPORT_SELECT_SOURCE | SUPPORT_SELECT_SOUND_MODE | SUPPORT_PLAY_MEDIA | \
-            SUPPORT_VOLUME_SET | SUPPORT_VOLUME_MUTE | \
-            SUPPORT_STOP | SUPPORT_PLAY | SUPPORT_PAUSE | \
-            SUPPORT_NEXT_TRACK | SUPPORT_PREVIOUS_TRACK | SUPPORT_SEEK | SUPPORT_SHUFFLE_SET
-
+            if self._state in [STATE_PLAYING, STATE_PAUSED]:
+                self._features = \
+                SUPPORT_SELECT_SOURCE | SUPPORT_SELECT_SOUND_MODE | SUPPORT_PLAY_MEDIA | \
+                SUPPORT_VOLUME_SET | SUPPORT_VOLUME_MUTE | \
+                SUPPORT_STOP | SUPPORT_PLAY | SUPPORT_PAUSE | \
+                SUPPORT_NEXT_TRACK | SUPPORT_PREVIOUS_TRACK | SUPPORT_SHUFFLE_SET | SUPPORT_SEEK
+            else:
+                self._features = \
+                SUPPORT_SELECT_SOURCE | SUPPORT_SELECT_SOUND_MODE | SUPPORT_PLAY_MEDIA | \
+                SUPPORT_VOLUME_SET | SUPPORT_VOLUME_MUTE | \
+                SUPPORT_STOP | SUPPORT_PLAY | SUPPORT_PAUSE | \
+                SUPPORT_NEXT_TRACK | SUPPORT_PREVIOUS_TRACK | SUPPORT_SHUFFLE_SET
+            
         if self._playing_stream:
             self._features = \
             SUPPORT_SELECT_SOURCE | SUPPORT_SELECT_SOUND_MODE | SUPPORT_PLAY_MEDIA | \
@@ -409,7 +345,7 @@ class LinkPlayDevice(MediaPlayerEntity):
     @property
     def media_position_updated_at(self):
         """When the seek position was last updated."""
-        if self._playing_localfile or self._playing_spotify or self._playing_stream or self._slave_mode:
+        if not self._playing_liveinput:
             return self._position_updated_at
         else:
             return None
@@ -442,7 +378,10 @@ class LinkPlayDevice(MediaPlayerEntity):
     @property
     def media_content_type(self):
         """Content type of current playing media."""
-        return MEDIA_TYPE_MUSIC
+        if self._playing_stream:
+            return MEDIA_TYPE_URL
+        else:
+            return MEDIA_TYPE_MUSIC
 
     @property
     def ssid(self):
@@ -492,6 +431,11 @@ class LinkPlayDevice(MediaPlayerEntity):
     def host(self):
         """Self ip."""
         return self._host
+
+    @property
+    def fw_ver(self):
+        """Return the firmware version number of the device."""
+        return self._fw_ver
 
     @property
     def lpapi(self):
@@ -637,7 +581,6 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._state = STATE_IDLE
                 self._playhead_position = 0
                 self._duration = 0
-                self._position_updated_at = utcnow()
                 self._media_title = None
                 self._prev_source = self._source
                 self._source = None
@@ -646,6 +589,8 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._icecast_name = None
                 self._media_uri = None
                 self._media_image_url = None
+                self._position_updated_at = utcnow()
+                self.schedule_update_ha_state(True)
                 if self._slave_list is not None:
                     for slave in self._slave_list:
                         slave.set_state(STATE_IDLE)
@@ -661,8 +606,9 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._lpapi.call('GET', 'setPlayerCmd:next')
             value = self._lpapi.data
             self._playhead_position = 0
+            self._duration = 0
             self._position_updated_at = utcnow()
-            self._wait_for_mcu = 0.4
+            self._wait_for_mcu = 2
             if value != "OK":
                 _LOGGER.warning("Failed skip to next track. Got response: %s", value)
         else:
@@ -674,8 +620,9 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._lpapi.call('GET', 'setPlayerCmd:prev')
             value = self._lpapi.data
             self._playhead_position = 0
+            self._duration = 0
             self._position_updated_at = utcnow()
-            self._wait_for_mcu = 0.4
+            self._wait_for_mcu = 2
             if value != "OK":
                 _LOGGER.warning("Failed to skip to previous track." " Got response: %s", value)
         else:
@@ -700,8 +647,8 @@ class LinkPlayDevice(MediaPlayerEntity):
     def play_media(self, media_type, media_id, **kwargs):
         """Play media from a URL or file."""
         if not self._slave_mode:
-            if not media_type == MEDIA_TYPE_MUSIC:
-                _LOGGER.warning("For %s Invalid media type %s. Only %s is supported", self._name, media_type, MEDIA_TYPE_MUSIC)
+            if not media_type in [MEDIA_TYPE_MUSIC, MEDIA_TYPE_URL]:
+                _LOGGER.warning("For %s Invalid media type %s. Only %s and %s is supported", self._name, media_type, MEDIA_TYPE_MUSIC, MEDIA_TYPE_URL)
                 return
 
             self._lpapi.call('GET', 'setPlayerCmd:play:{0}'.format(media_id))
@@ -738,7 +685,6 @@ class LinkPlayDevice(MediaPlayerEntity):
 
             self._unav_throttle = False
             if temp_source.find('http') == 0:
-                self._ice_skip_throt = True
                 self._lpapi.call('GET', 'setPlayerCmd:play:{0}'.format(temp_source))
                 value = self._lpapi.data
                 if value == "OK":
@@ -751,13 +697,13 @@ class LinkPlayDevice(MediaPlayerEntity):
                     self._state = STATE_PLAYING
                     self._playhead_position = 0
                     self._duration = 0
-#                    self._position_updated_at = utcnow()
+                    self._position_updated_at = utcnow()
                     self._media_title = None
                     self._media_artist = None
                     self._media_album = None
                     self._icecast_name = None
                     self._media_image_url = None
-#                    self._skip_cycle = True
+                    self._ice_skip_throt = True
 #                    _LOGGER.debug("State check 0: %s, %s, %s", self.entity_id, self._state, self._source)
                     if self._slave_list is not None:
                         for slave in self._slave_list:
@@ -777,7 +723,6 @@ class LinkPlayDevice(MediaPlayerEntity):
                     self._state = STATE_PLAYING
                     self._playhead_position = 0
                     self._duration = 0
-#                    self._skip_cycle = True
                     if self._slave_list is not None:
                         for slave in self._slave_list:
                             slave.set_source(source)
@@ -957,8 +902,6 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._multiroom_group = []
             self._is_master = False
             self._slave_list = None
-        else:
-            self._slave_list.remove(device)
 
         for member in self._multiroom_group:
             for player in self.hass.data[DOMAIN].entities:
@@ -1218,28 +1161,6 @@ class LinkPlayDevice(MediaPlayerEntity):
         if not validators.url(self._media_image_url):
             self._media_image_url = None
 
-    def _update_from_id3(self):
-        """Update track info with eyed3."""
-        if not self._media_uri:
-            return True
-        import eyed3
-        from urllib.error import URLError
-        try:
-            filename, _ = urllib.request.urlretrieve(self._media_uri)
-            audiofile = eyed3.load(filename)
-            self._media_title = audiofile.tag.title
-            self._media_artist = audiofile.tag.artist
-            self._media_album = audiofile.tag.album
-            # Remove tempfile when done
-            if filename.startswith(tempfile.gettempdir()):
-                os.remove(filename)
-
-        except (URLError, ValueError):
-            self._media_title = None
-            self._media_artist = None
-            self._media_album = None
-            self._media_image_url = None
-
     @Throttle(ICE_THROTTLE)
     def _update_from_icecast(self):
         """Update track info from icecast stream."""
@@ -1438,12 +1359,10 @@ class LinkPlayDevice(MediaPlayerEntity):
 
                         if self._first_update:
                             self._position_updated_at = utcnow()
+                            self._duration = 0
+                            self._playhead_position = 0
                             self._first_update = False
 
-#            if player_status['mode'] == '99':
-#                self._slave_mode = True
-#                return True
-            
             if self._multiroom_group == []:
                 self._slave_mode = False
                 self._is_master = False
@@ -1462,27 +1381,28 @@ class LinkPlayDevice(MediaPlayerEntity):
                 '3': True,
             }.get(player_status['loop'], False)
 
-            if not self._skip_cycle:
-                self._state = {
-                    'stop': STATE_IDLE,
-                    'load': STATE_PLAYING,
-                    'play': STATE_PLAYING,
-                    'pause': STATE_PAUSED,
-                }.get(player_status['status'], STATE_IDLE)
+            self._state = {
+                'stop': STATE_IDLE,
+                'load': STATE_PLAYING,
+                'play': STATE_PLAYING,
+                'pause': STATE_PAUSED,
+            }.get(player_status['status'], STATE_IDLE)
             
 #            _LOGGER.debug("State check 1: %s, _state: %s, _source: %s", self.entity_id, self._state, self._source)
 
-            self._duration = int(int(player_status['totlen']) / 1000)
-            self._playhead_position = int(int(player_status['curpos']) / 1000)
             self._playing_spotify = bool(player_status['mode'] == '31')
            
             if self._state == STATE_PLAYING or self._state == STATE_PAUSED:
                 self._position_updated_at = utcnow()
+                self._duration = int(int(player_status['totlen']) / 1000)
+                self._playhead_position = int(int(player_status['curpos']) / 1000)
+            else:
+                self._duration = 0
+                self._playhead_position = 0
 
-            if not self._skip_cycle:
-                self._playing_liveinput = player_status['mode'] in SOURCES_LIVEIN
-                self._playing_stream = player_status['mode'] in SOURCES_STREAM
-                self._playing_localfile = player_status['mode'] in SOURCES_LOCALF
+            self._playing_liveinput = player_status['mode'] in SOURCES_LIVEIN
+            self._playing_stream = player_status['mode'] in SOURCES_STREAM
+            self._playing_localfile = player_status['mode'] in SOURCES_LOCALF
 
             if not (self._playing_liveinput or self._playing_stream or self._playing_localfile):
                 self._playing_localfile = True
@@ -1532,46 +1452,40 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._state = STATE_PLAYING
                 self._update_via_upnp()
 
-            elif self._playing_localfile:
-                if player_status['Title'] != '756E6B6E6F776E' and \
-                    player_status['Artist'] != '756E6B6E6F776E' and \
-                    player_status['Title'] != '556E6B6E6F776E' and \
-                    player_status['Artist'] != '556E6B6E6F776E':  
-                    # 756E6B6E6F776E - unknown; 556E6B6E6F776E - Unknown
-                    if player_status['Title'] != '':
-                        self._media_title = str(bytearray.fromhex(player_status['Title']).decode('utf-8'))
-                    if player_status['Artist'] != '':
-                        self._media_artist = str(bytearray.fromhex(player_status['Artist']).decode('utf-8'))
-                    if player_status['Album'] != '':
-                        self._media_album = str(bytearray.fromhex(player_status['Album']).decode('utf-8'))
-                
-                elif player_status['Title'] != '':
-                    filnam = str(bytearray.fromhex(player_status['Title']).decode('utf-8'))
+            elif self._playing_localfile and self._state in [STATE_PLAYING, STATE_PAUSED]:
+                if player_status['Title'] != '':
+                    status_title = str(bytearray.fromhex(player_status['Title']).decode('utf-8'))
+                    if status_title.lower() != 'unknown':
+                        self._media_title = status_title
+                    else:
+                        self._media_title = None
+                if player_status['Artist'] != '':
+                    status_artist = str(bytearray.fromhex(player_status['Artist']).decode('utf-8'))
+                    if status_artist.lower() != 'unknown':
+                        self._media_artist = status_artist
+                    else:
+                        self._media_artist = None
+                if player_status['Album'] != '':
+                    status_album = str(bytearray.fromhex(player_status['Album']).decode('utf-8'))
+                    if status_album.lower() != 'unknown':
+                        self._media_album = status_album
+                    else:
+                        self._media_album = None
+               
+                if self._media_title is not None and self._media_artist is None:
                     cutext = ['mp3', 'mp2', 'm2a', 'mpg', 'wav', 'aac', 'flac', 'flc', 'm4a', 'ape', 'ogg']
-                    querywords = filnam.split('.')
+                    querywords = self._media_title.split('.')
                     resultwords  = [word for word in querywords if word.lower() not in cutext]
                     title = ' '.join(resultwords)
                     title.replace('_', ' ')
-                    #title.strip('-')
                     if title.find(' - ') != -1:
                         titles = title.split(' - ')
                         self._media_artist = titles[0].strip().strip('-')
                         self._media_title = titles[1].strip().strip('-')
                     else:
-                        self._media_artist = None
                         self._media_title = title.strip().strip('-')
-                    self._media_album = None
-                    
                 else:
                     self._media_title = self._source
-                    self._media_artist = None
-                    self._media_album = None
-                                    
-                self._new_song = self._is_playing_new_track()
-                if self._lfmapi is not None and self._new_song and self._media_title is not None and self._media_artist is not None:
-                    self._get_lastfm_coverart()
-                elif self._media_title is None or self._media_artist is None:
-                    self._media_image_url = None
 
 #            _LOGGER.debug("State check 3: %s, %s, %s", self.entity_id, self._media_uri, self._playing_stream)
             
@@ -1582,28 +1496,18 @@ class LinkPlayDevice(MediaPlayerEntity):
                     self._ice_skip_throt = False
                 else:
                     self._update_from_icecast()
-                self._new_song = self._is_playing_new_track()
-                if self._lfmapi is not None and self._new_song and self._media_title is not None and self._media_artist is not None:
-                    self._get_lastfm_coverart()
-                elif self._media_title is None or self._media_artist is None:
-                    self._media_image_url = None
 
-            elif self._media_uri and self._new_song and not self._playing_stream:
-                self._update_from_id3()
-                self._state = STATE_PLAYING
-                self._new_song = self._is_playing_new_track()
-                if self._lfmapi is not None and self._media_title is not None and self._media_artist is not None:
-                    self._get_lastfm_coverart()
-                else:
-                    self._media_image_url = None
+            self._new_song = self._is_playing_new_track()
+            if self._lfmapi is not None and self._new_song and self._media_title is not None and self._media_artist is not None:
+                self._get_lastfm_coverart()
+            elif self._media_title is None or self._media_artist is None:
+                self._media_image_url = None
 
             self._media_prev_artist = self._media_artist
             self._media_prev_title = self._media_title
-            self._skip_cycle = False
 
         else:
             _LOGGER.warning("JSON A result was not a dictionary")
-
 
         # Get multiroom slave information #
         self._lpapi.call('GET', 'multiroom:getSlaveList')
@@ -1662,7 +1566,6 @@ class LinkPlayDevice(MediaPlayerEntity):
             _LOGGER.warning("JSON B result was not a dictionary")
 
         return True
-
 
 class LinkPlayRestData:
     """Class for handling the data retrieval from the LinkPlay device."""
