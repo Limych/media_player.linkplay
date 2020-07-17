@@ -138,7 +138,7 @@ To restore the player state:
 ```
 Currently only the input source selection is being snapshotted/restored.
 
-## Browsing media files from Home Assistant
+## Browsing media files through Lovelace UI
 
 Some device models equipped with an USB port can play music from directly attached USB sticks. There are two services, `linkplay.get_tracks` and `linkplay.play_track` which allow reading the list of the files into an `input_select`, and trigger playback when selecting a file from the list. Here's how to set this up, with the list automatically filling itself when changing to USB:
 
