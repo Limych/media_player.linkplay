@@ -152,6 +152,7 @@ input_select:
       - "____ Room1 ____"
     initial: "____ Room1 ____"
 ```
+Tip: at `Room1` you should specify the same name that you used when you named the device in the Android app.
 Add to your automations the followings (load the list when changing source to USB; clear the list when changing to other source; play the selected track):
 ```yaml
 - alias: 'Music list load'
