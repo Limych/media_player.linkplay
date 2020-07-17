@@ -111,7 +111,7 @@ To exit from the multiroom group, use the entity ids of the players that need to
 ```
 These services are compatible out of the box with the gpeaker group object in @kalkih's [Mini Media Player](https://github.com/kalkih/mini-media-player) card for Lovelace UI.
 
-## Recall device music presets
+## Presets
 
 Linkplay devices allow to save, using the control app on the phone/tablet, music presets (for example Spotify playlists) to be recalled for later listening. Recalling a preset from Home Assistant:
 ```yaml
@@ -137,6 +137,55 @@ To restore the player state:
         entity_id: media_player.sound_room1
 ```
 Currently only the input source selection is being snapshotted/restored.
+
+## Browsing media files from Home Assistant
+
+Some device models equipped with an USB port can play music from directly attached USB sticks. There are two services, `linkplay.get_tracks` and `linkplay.play_track` which allow reading the list of the files into an `input_select`, and trigger playback of the selected file. Here's how to set this up:
+
+Add to `configuration.yaml`:
+```yaml
+input_select:
+  tracks_room1:
+    name: Room1 music list
+    icon: mdi:music
+    options:
+      - "____ Room1 ____"
+    initial: "____ Room1 ____"
+```
+Add to your automations the followings (load the list when changing source to USB; clear the list when changing to other source; play the selected track):
+```yaml
+- alias: 'Music list load'
+  trigger:
+    platform: template
+    value_template: "{% if is_state_attr('media_player.sound_room1', 'source', 'USB') %}True{% endif %}"
+  action:
+    - service: linkplay.get_tracks
+      data:
+        entity_id: media_player.sound_room1
+        input_select: input_select.tracks_room1
+
+- alias: 'Music list clear'
+  trigger:
+    platform: template
+    value_template: "{% if not(is_state_attr('media_player.sound_room1', 'source', 'USB')) %}True{% endif %}"
+  action:
+    - service: input_select.set_options
+      data:
+        entity_id: input_select.tracks_room1
+        options:
+          - "____ Room1 ____"
+
+- alias: 'Music list play selected track'
+  trigger:
+    - platform: state
+      entity_id: input_select.tracks_room1
+  action:
+    - service: linkplay.play_track
+      data:
+        entity_id: media_player.sound_room1
+        track: "{{ states('input_select.tracks_room1') }}"
+```
+You can use @mattieha's [Select List Card](https://github.com/mattieha/select-list-card) to display the input_select in Lovelace as scrollable list.
 
 ## Automation examples
 
