@@ -21,11 +21,16 @@ SERVICE_PRESET = 'preset'
 SERVICE_CMD = 'command'
 SERVICE_SNAP = 'snapshot'
 SERVICE_REST = 'restore'
+SERVICE_LIST = 'get_tracks'
+SERVICE_PLAY = 'play_track'
 
 ATTR_MASTER = 'master'
 ATTR_PRESET = 'preset'
 ATTR_CMD = 'command'
 ATTR_SNAP = 'switchinput'
+ATTR_SELECT = 'input_select'
+ATTR_SOURCE = 'source'
+ATTR_TRACK = 'track'
 
 SERVICE_SCHEMA = vol.Schema({
     vol.Optional(ATTR_ENTITY_ID): cv.entity_ids
@@ -40,7 +45,7 @@ PRESET_BUTTON_SCHEMA = vol.Schema({
     vol.Required(ATTR_PRESET): cv.positive_int
 })
 
-COMMAND_SERVICE_SCHEMA = vol.Schema({
+CMND_SERVICE_SCHEMA = vol.Schema({
     vol.Required(ATTR_ENTITY_ID): cv.entity_id,
     vol.Required(ATTR_CMD): cv.string
 })
@@ -52,6 +57,17 @@ REST_SERVICE_SCHEMA = vol.Schema({
 SNAP_SERVICE_SCHEMA = vol.Schema({
     vol.Required(ATTR_ENTITY_ID): cv.entity_id,
     vol.Optional(ATTR_SNAP, default=True): cv.boolean
+})
+
+GETTRK_SERVICE_SCHEMA = vol.Schema({
+    vol.Required(ATTR_ENTITY_ID): cv.entity_id,
+    vol.Required(ATTR_SELECT): cv.entity_id,
+    vol.Optional(ATTR_SOURCE, default='USB'): cv.string
+})
+
+PLYTRK_SERVICE_SCHEMA = vol.Schema({
+    vol.Required(ATTR_ENTITY_ID): cv.entity_id,
+    vol.Required(ATTR_TRACK): cv.template
 })
 
 _LOGGER = logging.getLogger(__name__)
@@ -118,6 +134,21 @@ def setup(hass, config):
                     _LOGGER.debug("**RESTORE** entity: %s;", device.entity_id)
                     device.restore()
 
+        elif service.service == SERVICE_LIST:
+            in_slct = service.data.get(ATTR_SELECT)
+            trk_src = service.data.get(ATTR_SOURCE)
+            for device in entities:
+                if device.entity_id == service.data.get(ATTR_ENTITY_ID):
+                    _LOGGER.debug("**GET TRACKS** entity: %s; source: %s; to: %s", device.entity_id, trk_src, in_slct)
+                    device.fill_input_select(in_slct, trk_src)
+
+        elif service.service == SERVICE_PLAY:
+            track = service.data.get(ATTR_TRACK)
+            for device in entities:
+                if device.entity_id == service.data.get(ATTR_ENTITY_ID):
+                    _LOGGER.debug("**PLAY TRACK** entity: %s; track: %s", device.entity_id, track)
+                    device.play_track(track)
+
 
     hass.services.register(
         DOMAIN, SERVICE_JOIN, service_handle, schema=JOIN_SERVICE_SCHEMA)
@@ -126,10 +157,15 @@ def setup(hass, config):
     hass.services.register(
         DOMAIN, SERVICE_PRESET, service_handle, schema=PRESET_BUTTON_SCHEMA)
     hass.services.register(
-        DOMAIN, SERVICE_CMD, service_handle, schema=COMMAND_SERVICE_SCHEMA)
+        DOMAIN, SERVICE_CMD, service_handle, schema=CMND_SERVICE_SCHEMA)
     hass.services.register(
         DOMAIN, SERVICE_SNAP, service_handle, schema=SNAP_SERVICE_SCHEMA)
     hass.services.register(
         DOMAIN, SERVICE_REST, service_handle, schema=REST_SERVICE_SCHEMA)
+    hass.services.register(
+        DOMAIN, SERVICE_LIST, service_handle, schema=GETTRK_SERVICE_SCHEMA)
+    hass.services.register(
+        DOMAIN, SERVICE_PLAY, service_handle, schema=PLYTRK_SERVICE_SCHEMA)
+
 
     return True
