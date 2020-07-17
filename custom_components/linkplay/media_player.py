@@ -97,7 +97,7 @@ SOURCES_MAP = {'-1': 'Idle',
                '11': 'USB', 
                '16': 'SD', 
                '20': 'API', 
-               '21': 'USB', 
+               '21': 'USB-API', 
                '30': 'Alarm', 
                '31': 'Spotify', 
                '40': 'Line-in', 
@@ -192,6 +192,7 @@ class LinkPlayDevice(MediaPlayerEntity):
         self._upnp_device = None
         self._slave_mode = False
         self._slave_ip = None
+        self._trackq = []
         self._master = None
         self._is_master = False
         self._wifi_channel = None
@@ -424,6 +425,10 @@ class LinkPlayDevice(MediaPlayerEntity):
         attributes[ATTR_SLAVE] = self._slave_mode
         attributes[ATTR_FWVER] = self._fw_ver
         attributes[ATTR_DEVICE_CLASS] = DEVICE_CLASS_SPEAKER
+        if len(self._trackq) > 0:
+            attributes['track_count'] = len(self._trackq) - 1
+        else:
+            attributes['track_count'] = 0
 
         return attributes
 
@@ -431,6 +436,14 @@ class LinkPlayDevice(MediaPlayerEntity):
     def host(self):
         """Self ip."""
         return self._host
+
+    @property
+    def track_count(self):
+        """List of tracks present on the device."""
+        if len(self._trackq) > 0:
+            return len(self._trackq) - 1
+        else:
+            return 0
 
     @property
     def fw_ver(self):
@@ -1161,6 +1174,93 @@ class LinkPlayDevice(MediaPlayerEntity):
         if not validators.url(self._media_image_url):
             self._media_image_url = None
 
+    def _tracklist_via_upnp(self, media):
+        """Retrieve tracks list queue via UPNP."""
+        if self._upnp_device is None:
+            return
+
+        if media == 'USB':
+            queuename = 'USBDiskQueue'
+            rootdir = '/media/sda1/'
+        else:
+            _LOGGER.warning("Tracklist retrieval: %s, %s is not supported. You can use only 'USB' for now.", self.entity_id, media_info)
+            return
+
+        try:
+            media_info = self._upnp_device.PlayQueue.BrowseQueue(QueueName=queuename)
+        except:
+            _LOGGER.warning("Tracklist get error: %s, %s", self.entity_id, media)
+            return
+
+        media_info = media_info.get('QueueContext')
+        xml_tree = ET.fromstring(media_info)
+
+        trackq = []
+        for playlist in xml_tree:
+           for tracks in playlist:
+               for track in tracks:
+                   if track.tag == 'URL':
+                       if rootdir in track.text:
+                           tracku = track.text.replace(rootdir,'')
+                           trackq.append(tracku)
+
+        if len(trackq) > 0:
+            trackq.insert(0, '____ ' + self._name + ' ____')
+            self._trackq = trackq
+
+#        _LOGGER.debug("Tracklist check: %s, tracklist: %s", self.entity_id, self._trackq)
+
+    def fill_input_select(self, in_slct, trk_src):
+        """Fill the specified input select with tracks list."""
+        self._tracklist_via_upnp(trk_src)
+        if len(self._trackq) > 0:
+            DOM_INSEL = 'input_select'
+            service_data = {'entity_id': in_slct, 'options': self._trackq}
+            self.hass.services.call('input_select', 'set_options', service_data)
+            return
+        else:
+            _LOGGER.debug("Retrieved tracklist empty: %s, tracklist: %s", self.entity_id, self._trackq)
+
+    def play_track(self, track):
+        """Play media track by name found in the tracks list."""
+        if not len(self._trackq) > 0 or track is None:
+            return
+
+        track.hass = self.hass   # render template
+        trackn = track.async_render()
+        
+        if not self._slave_mode:
+            try:
+                index = [idx for idx, s in enumerate(self._trackq) if trackn in s][0]
+            except (IndexError):
+                return
+
+            if not index > 0:
+                return
+
+            self._lpapi.call('GET', 'setPlayerCmd:playLocalList:{0}'.format(index))
+            value = self._lpapi.data
+            if value != "OK":
+                _LOGGER.warning("Failed to play media track by name. Got response: %s", value)
+                return False
+            else:
+                self._state = STATE_PLAYING
+                self._media_title = None
+                self._media_artist = None
+                self._media_album = None
+                self._icecast_name = None
+                self._playhead_position = 0
+                self._duration = 0
+                self._position_updated_at = utcnow()
+                self._media_image_url = None
+                self._media_uri = None
+                self._ice_skip_throt = False
+                self._unav_throttle = False
+                return True
+        else:
+            self._master.play_track(track)
+
+
     @Throttle(ICE_THROTTLE)
     def _update_from_icecast(self):
         """Update track info from icecast stream."""
@@ -1307,7 +1407,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._icecast_name = None
             self._source = None
             self._upnp_device = None
-            return True
+            return
 
         try:
             player_status = json.loads(player_api_result)
@@ -1444,6 +1544,9 @@ class LinkPlayDevice(MediaPlayerEntity):
 
 #            _LOGGER.debug("State check 2: %s, %s, %s", self.entity_id, self._state, self._source)
             
+#            if self._source == 'USB':
+#                self._tracklist_via_upnp('USB')
+                
             if player_status['mode'] in ['1', '2', '3']:
                 self._media_title = self._source
                 self._state = STATE_PLAYING
@@ -1473,7 +1576,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                         self._media_album = None
                
                 if self._media_title is not None and self._media_artist is None:
-                    cutext = ['mp3', 'mp2', 'm2a', 'mpg', 'wav', 'aac', 'flac', 'flc', 'm4a', 'ape', 'ogg']
+                    cutext = ['mp3', 'mp2', 'm2a', 'mpg', 'wav', 'aac', 'flac', 'flc', 'm4a', 'ape', 'wma', 'ac3', 'ogg']
                     querywords = self._media_title.split('.')
                     resultwords  = [word for word in querywords if word.lower() not in cutext]
                     title = ' '.join(resultwords)
