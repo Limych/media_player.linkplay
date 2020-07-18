@@ -20,33 +20,29 @@ This **will overwrite** the previous **Linkplay Sound Devices Integration** comp
 
 1. To add Linkplay device to your installation, add the following to your `configuration.yaml` file:
 
-    ```yaml
-    # Example configuration.yaml entry
-    media_player:
-        - platform: linkplay
-          host: 192.168.1.11
-          name: Sound Room1
-          icecast_metadata: 'StationNameSongTitle'
-          multiroom_wifidirect: False
-          sources: 
-            {
-              'wifi': 'Network', 
-              'optical': 'TV sound', 
-              'line-in': 'Radio tuner', 
-              'bluetooth': 'Bluetooth',
-              'udisk': 'USB stick'
-              'http://94.199.183.186:8000/jazzy-soul.mp3': 'Jazzy Soul',
-            }
+```yaml
+# Example configuration.yaml entry
+media_player:
+    - platform: linkplay
+      host: 192.168.1.11
+      name: Sound Room1
+      icecast_metadata: 'StationNameSongTitle'
+      multiroom_wifidirect: False
+      sources: 
+        {
+          'optical': 'TV sound', 
+          'line-in': 'Radio tuner', 
+          'bluetooth': 'Bluetooth',
+          'udisk': 'USB stick'
+          'http://94.199.183.186:8000/jazzy-soul.mp3': 'Jazzy Soul',
+        }
 
-        - platform: linkplay
-          host: 192.168.1.12
-          name: Sound Room2
-          icecast_metadata: 'Off'  # valid values: 'Off', 'StationName', 'StationNameSongTitle'
-          sources: 
-            {
-              'wifi': 'Network'
-            }
-    ```
+    - platform: linkplay
+      host: 192.168.1.12
+      name: Sound Room2
+      icecast_metadata: 'Off'  # valid values: 'Off', 'StationName', 'StationNameSongTitle'
+      sources: {}
+```
 
 ### Configuration Variables
 
@@ -66,7 +62,7 @@ This **will overwrite** the previous **Linkplay Sound Devices Integration** comp
   *(string)* *(Optional)* API key to LastFM service to get album covers. Register for one.
 
 **sources:**\
-  *(list)* *(Optional)* A list with available sources on the device. If not specified, the integration will assume these sources are present on it:
+  *(list)* *(Optional)* A list with available source inputs on the device. If not specified, the integration will assume that all the supported source input types are present on it:
 ```yaml
 'bluetooth': 'Bluetooth', 
 'line-in': 'Line-in', 
@@ -86,7 +82,7 @@ The sources can be renamed to your preference (change only the part after **:** 
 'http://1.2.3.4:8000/your_radio': 'Your Radio',
 'http://icecast.streamserver.tld/mountpoint.aac': 'Another radio',
 ```
-At least one source should be present if you use the `sources:` option, for units without any extra source input (like Audiocast M5) you should leave just `'wifi': 'Network'` if you don't want any webradios, that will actually hide the source switch as it's useless (this is a dummy input covering all the streaming sources, selecting it on it's own results to nothing).
+If you don't want a source selector to be available at all, set option to `sources: {}`.
 
 ## Multiroom
 
@@ -120,7 +116,7 @@ Linkplay devices allow to save, using the control app on the phone/tablet, music
         entity_id: media_player.sound_room1
         preset: 1
 ```
-Preset count vary from device tyoe, usually the app shows how many presets can be stored maximum. The integration detects the max number and the command only accepts numbers from the allowed range.
+Preset count vary from device tyoe to type, usually the app shows how many presets can be stored maximum. The integration detects the max number and the command only accepts numbers from the allowed range.
 
 ## Snapshot and restore
 
@@ -191,7 +187,16 @@ You can use @mattieha's [Select List Card](https://github.com/mattieha/select-li
 
 ## Automation examples
 
-To select an input and set volume and unmute via an automation:
+Play a webradio stream directly:
+```yaml
+    - service: media_player.play_media
+      data:
+        entity_id: media_player.sound_room1
+        media_content_id: 'http://icecast.streamserver.tld/mountpoint.mp3'
+        media_content_type: url
+```
+
+Select an input and set volume and unmute via an automation:
 ```yaml
 - alias: 'Switch to the line input of the TV when TV turns on'
   trigger:
@@ -214,7 +219,7 @@ To select an input and set volume and unmute via an automation:
 ```
 Note that you have to specify source names as you've set them in the configuration of the component.
 
-To intrerupt playback of a source, say a TTS message and resume playback afterwards:
+Intrerupt playback of a source, say a TTS message and resume playback afterwards:
 ```yaml
 - alias: 'Notify by TTS that Mary has arrived'
   trigger:
