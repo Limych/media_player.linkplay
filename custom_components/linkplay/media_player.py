@@ -29,7 +29,7 @@ from homeassistant.components.media_player.const import (
     SUPPORT_PLAY_MEDIA, SUPPORT_PREVIOUS_TRACK, SUPPORT_SEEK,
     SUPPORT_SELECT_SOUND_MODE, SUPPORT_SELECT_SOURCE, SUPPORT_SHUFFLE_SET,
     SUPPORT_VOLUME_MUTE, SUPPORT_VOLUME_SET, SUPPORT_STOP)
-from . import VERSION, ISSUE_URL, DOMAIN, ATTR_MASTER
+from . import DOMAIN, ATTR_MASTER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -127,9 +127,6 @@ class LinkPlayData:
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up the LinkPlay device."""
-    # Print startup message
-    _LOGGER.debug('Version %s', VERSION)
-    _LOGGER.info('If you have any issues with this you need to open an issue here: %s', ISSUE_URL)
 
     if DOMAIN not in hass.data:
         hass.data[DOMAIN] = LinkPlayData()
@@ -694,18 +691,22 @@ class LinkPlayDevice(MediaPlayerEntity):
 
     def select_source(self, source):
         """Select input source."""
+        _LOGGER.debug("Source check 0, source: %s, %s", self.entity_id, source)
         if not self._slave_mode:
             temp_source = next((k for k in self._source_list if self._source_list[k] == source), None)
+            _LOGGER.debug("Source check 1, temp_source: %s, %s", self.entity_id, temp_source)
             if temp_source == None:
                 return
 
             if len(self._source_list) > 1:
                 prev_source = next((k for k in self._source_list if self._source_list[k] == self._source), None)
+                _LOGGER.debug("Source check 2, prev_source: %s, %s", self.entity_id, prev_source)
 
             self._unav_throttle = False
             if temp_source.find('http') == 0:
                 self._lpapi.call('GET', 'setPlayerCmd:play:{0}'.format(temp_source))
                 value = self._lpapi.data
+                _LOGGER.debug("Source check 3a, value: %s, %s", self.entity_id, value)
                 if value == "OK":
                     if prev_source and prev_source.find('http') == -1:
                         self._wait_for_mcu = 2  # switching from live to stream input -> time to report correct volume value at update
@@ -733,6 +734,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             else:
                 self._lpapi.call('GET', 'setPlayerCmd:switchmode:{0}'.format(temp_source))
                 value = self._lpapi.data
+                _LOGGER.debug("Source check 3b, value: %s, %s", self.entity_id, value)
                 if value == "OK":
                     if temp_source and (temp_source == 'udisk' or temp_source == 'tfcard'):
                         self._wait_for_mcu = 2    # switching to locally stored files -> time to report correct volume value at update
@@ -1438,7 +1440,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                     try:
                         device_status = json.loads(device_api_result)
                     except ValueError:
-                        _LOGGER.debug("Erroneous JSON: %s", device_api_result)
+                        _LOGGER.debug("Erroneous JSON: %s, %s", self.entity_id, device_api_result)
                         device_status = None
                     if isinstance(device_status, dict):
                         if self._state == STATE_UNAVAILABLE:
@@ -1644,7 +1646,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             slave_list = json.loads(slave_list)
         except ValueError:
             # _LOGGER.warning("REST result could not be parsed as JSON: %s, %s", self.entity_id, self._name)
-            _LOGGER.debug("Erroneous JSON: %s", slave_list)
+            _LOGGER.debug("Erroneous JSON: %s, %s", self.entity_id, slave_list)
             slave_list = None
             self._slave_list = None
             self._multiroom_group = []
@@ -1765,8 +1767,7 @@ class LastFMRestData:
         resource = "{0}{1}&{2}&api_key={3}&format=json".format(
             LASTFM_API_BASE, cmd, params, self._api_key)
         self._request = requests.Request(method, resource).prepare()
-        _LOGGER.debug("Updating LastFMRestData from %s", self._request.url)
-
+        _LOGGER.debug("Updating LastFMRestData for %s from %s", self._name, self._request.url)
         try:
             with requests.Session() as sess:
                 response = sess.send(
