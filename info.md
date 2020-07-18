@@ -12,7 +12,7 @@ This **will overwrite** the previous **Linkplay Sound Devices Integration** comp
 [Support forum](https://community.home-assistant.io/t/linkplay-integration/33878/133)
 
 ## Supported features:
-- Configurable input sources list, to match choices in HA with the pyhsical inputs on each device
+- Configurable input sources list, to match choices in HA with the pyhsical inputs available on each device
 - Configurable Icecast / Shoutcast webradio streams as input sources
 - Retrieval of current playing content metadata from Icecast / Shoutcast webradio streams and filenames on directly attached USB sticks
 - Retrieval of coverart from last.fm service based on current playing content metadata
