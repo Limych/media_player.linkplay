@@ -90,7 +90,7 @@ Linkplay devices support multiroom in two modes:
 - WiFi direct mode, where the master turns into a hidden AP and the slaves connect diretcly to it. The advantage is that this is a dedicated direct connection between the speakers, with network parameters optimized by the factory for streaming. Disadvantage is that switching of the stream is slower, plus the coverage can be limited due to the building's specifics. This is the default method used by the Android app to create multirooms.
 - Router mode, where the master and slaves connect to each other through the local network (from firmware v4.2.8020 up). The advantage is that all speakers remain connected to the existing network, swicthing the stream happens faster, and the coverage can be bigger being ensured by the network infrastructure of the building (works through multiple interconnected APs and switches). Disadvantage is that the network is not dedicated and it's the user responsibility to provide proper network infrastructure for reliable streaming.
 
-This integration will autodetect the firmware version running on the player and choose multiroom mode accordingly. Units with firmware version lower than v4.2.8020 will be autodetected and they connect to multirooms only in wifi-direct mode. Firmware version number can be seen in device attributes. Can be overriden with option `multiroom_wifidirect: True`, and is needed only for units with newer versions if the user has a mix of players running old and new firmware.
+This integration will autodetect the firmware version running on the player and choose multiroom mode accordingly. Units with firmware version lower than v4.2.8020 can connect to multirooms only in wifi-direct mode. Can be overriden with option `multiroom_wifidirect: True`, and is needed only for units with newer versions if the user has a mix of players running old and new firmware. Firmware version number can be seen in device attributes. 
 
 To create a multiroom group, connect `media_player.sound_room2` (slave) to `media_player.sound_room1` (master):
 ```yaml
@@ -105,7 +105,7 @@ To exit from the multiroom group, use the entity ids of the players that need to
       data:
         entity_id: media_player.sound_room1
 ```
-These services are compatible out of the box with the gpeaker group object in @kalkih's [Mini Media Player](https://github.com/kalkih/mini-media-player) card for Lovelace UI.
+These services are compatible out of the box with the speaker group object in @kalkih's [Mini Media Player](https://github.com/kalkih/mini-media-player) card for Lovelace UI.
 
 ## Presets
 
@@ -132,7 +132,7 @@ To restore the player state:
       data:
         entity_id: media_player.sound_room1
 ```
-Currently only the input source selection is being snapshotted/restored.
+Currently only the input source selection and the volume is being snapshotted/restored.
 
 ## Browsing media files through Lovelace UI
 
