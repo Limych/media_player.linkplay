@@ -244,7 +244,6 @@ Intrerupt playback of a source, say a TTS message and resume playback afterwards
         entity_id: media_player.sound_room1
 ```
 
-
 ## Specific commands
 
 Linkplay devices support some commands through the API, this is a wrapper to be able to use these in Home Assistant:
@@ -259,7 +258,7 @@ Implemented commands:
 - `Rescan` - do not wait for the current 60 second throttle cycle to reconnect to the unavailable devices, trigger testing for availability immediately
 - `PromptEnable` and `PromptDisable` - enable or disable the audio prompts played through the speakers when connecting to the network or joining multiroom etc.
 - `SetRandomWifiKey`- just as an extra security feature, one could make an automation to change the keys on the linkplay APs to some random values periodically.
-- `WriteDeviceNameToUnit` - write the name configured in Home Assistant to the player’s firmware so that the names would match exactly in order to have multiroom in wifi direct mode fully operational (not needed for router mode)
+- `WriteDeviceNameToUnit: My Device Name` - change the friendly name of the device both in firmware and in Home Assistant.
 - `TimeSync` - is for units on networks not connected to internet to compensate for an unreachable NTP server. Correct time is needed for the alarm clock functionality (not implemented yet here)
 - `RouterMultiroomEnable` - theoretically router mode is enabled by default in firmwares above v4.2.8020, but there’s also a logic included to build it up, this command ensures to set the good priority. Only use if you have issues with multiroom in router mode.
 
