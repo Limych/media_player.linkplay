@@ -30,7 +30,7 @@ This **will overwrite** the previous **Linkplay Sound Devices Integration** comp
           multiroom_wifidirect: False
           sources: 
             {
-              'wifi': 'WiFi', 
+              'wifi': 'Network', 
               'optical': 'TV sound', 
               'line-in': 'Radio tuner', 
               'bluetooth': 'Bluetooth',
@@ -44,7 +44,7 @@ This **will overwrite** the previous **Linkplay Sound Devices Integration** comp
           icecast_metadata: 'Off'  # valid values: 'Off', 'StationName', 'StationNameSongTitle'
           sources: 
             {
-              'wifi': 'WiFi'
+              'wifi': 'Network'
             }
     ```
 
