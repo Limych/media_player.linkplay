@@ -34,7 +34,7 @@ This **will overwrite** the previous **Linkplay Sound Devices Integration** comp
               'optical': 'TV sound', 
               'line-in': 'Radio tuner', 
               'bluetooth': 'Bluetooth',
-              'udisk': 'USB HDD'
+              'udisk': 'USB stick'
               'http://94.199.183.186:8000/jazzy-soul.mp3': 'Jazzy Soul',
             }
 
@@ -80,7 +80,6 @@ This **will overwrite** the previous **Linkplay Sound Devices Integration** comp
 'XLR': 'XLR', 
 'FM': 'FM', 
 'cd': 'CD'
-'udisk': 'USB'
 ```
 The sources can be renamed to your preference (change only the part after **:** ). You can also specify http-based (Icecast / Shoutcast) internet radio streams as input sources:
 ```yaml
@@ -155,12 +154,12 @@ input_select:
 ```
 Tip: at `Room1` you should specify the same name that you used when you named the device in the Android app. Keep the underscores.
 
-Add to your automations the followings (load the list when changing source to USB; clear the list when changing to other source; play the selected track):
+Add to your automations the followings (load the list when changing source to `USB stick`; clear the list when changing to other source; play the selected track):
 ```yaml
 - alias: 'Music list load'
   trigger:
     platform: template
-    value_template: "{% if is_state_attr('media_player.sound_room1', 'source', 'USB') %}True{% endif %}"
+    value_template: "{% if is_state_attr('media_player.sound_room1', 'source', 'USB stick') %}True{% endif %}"
   action:
     - service: linkplay.get_tracks
       data:
@@ -170,7 +169,7 @@ Add to your automations the followings (load the list when changing source to US
 - alias: 'Music list clear'
   trigger:
     platform: template
-    value_template: "{% if not(is_state_attr('media_player.sound_room1', 'source', 'USB')) %}True{% endif %}"
+    value_template: "{% if not(is_state_attr('media_player.sound_room1', 'source', 'USB stick')) %}True{% endif %}"
   action:
     - service: input_select.set_options
       data:
