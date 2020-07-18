@@ -75,28 +75,28 @@ PLATFORM_SCHEMA = vol.All(cv.PLATFORM_SCHEMA.extend({
 
 SOUND_MODES = {'0': 'Normal', '1': 'Classic', '2': 'Pop', '3': 'Jazz', '4': 'Vocal'}
 
-SOURCES = {'wifi': 'WiFi', 
-           'line-in': 'Line-in', 
-           'line-in2': 'Line-in2', 
+SOURCES = {'wifi': 'Network', 
            'bluetooth': 'Bluetooth', 
+           'line-in': 'Line-in', 
+           'line-in2': 'Line-in 2', 
            'optical': 'Optical', 
-           'rca': 'RCA', 
-           'co-axial': 'S-PDIF', 
-           'tfcard': 'SD',
-           'hdmi': 'HDMI',
-           'xlr': 'XLR', 
-           'fm': 'FM', 
-           'cd': 'CD', 
-           'udisk': 'USB'}
+           'co-axial': 'Coaxial', 
+           'HDMI': 'HDMI', 
+           'udisk': 'USB disk', 
+           'TFcard': 'SD card', 
+           'RCA': 'RCA', 
+           'XLR': 'XLR', 
+           'FM': 'FM', 
+           'cd': 'CD'}
 
 SOURCES_MAP = {'-1': 'Idle', 
                '0': 'Idle', 
                '1': 'Airplay', 
                '2': 'DLNA',
                '3': 'QPlay',
-               '10': 'WiFi', 
-               '11': 'USB', 
-               '16': 'SD', 
+               '10': 'Network', 
+               '11': 'USB disk', 
+               '16': 'SD card', 
                '20': 'API', 
                '21': 'USB-API', 
                '30': 'Alarm', 
@@ -111,7 +111,7 @@ SOURCES_MAP = {'-1': 'Idle',
                '48': 'XLR',
                '49': 'HDMI',
                '50': 'CD/Mirror',
-               '52': 'TFcard',
+               '52': 'SD card',
                '60': 'Talk',
                '99': 'Idle'}
 
@@ -266,7 +266,7 @@ class LinkPlayDevice(MediaPlayerEntity):
     @property
     def source(self):
         """Return the current input source."""
-        if self._source not in ['Idle', 'WiFi']:
+        if self._source not in ['Idle', 'Network']:
             return self._source
         else:
             return None
@@ -520,7 +520,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                 if temp_source == None:
                     return
 
-                if temp_source.find('http') == 0 or temp_source == 'udisk' or temp_source == 'tfcard':
+                if temp_source.find('http') == 0 or temp_source == 'udisk' or temp_source == 'TFcard':
                     self.select_source(self._prev_source)
                     if self._source != None:
                         self._source = None
@@ -736,7 +736,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                 value = self._lpapi.data
                 _LOGGER.debug("Source check 3b, value: %s, %s", self.entity_id, value)
                 if value == "OK":
-                    if temp_source and (temp_source == 'udisk' or temp_source == 'tfcard'):
+                    if temp_source and (temp_source == 'udisk' or temp_source == 'TFcard'):
                         self._wait_for_mcu = 2    # switching to locally stored files -> time to report correct volume value at update
                     else:
                         self._wait_for_mcu = 0.6  # switching to a physical input -> time to report correct volume value at update
@@ -1532,10 +1532,10 @@ class LinkPlayDevice(MediaPlayerEntity):
 
 #            _LOGGER.debug("State check 1,5: %s, %s, %s, %s", self.entity_id, self._state, self._playing_stream, self._media_uri)
 
-            source_t = SOURCES_MAP.get(player_status['mode'], 'WiFi')
-            if source_t == "WiFi":
+            source_t = SOURCES_MAP.get(player_status['mode'], 'Network')
+            if source_t == 'Network':
                 if self._media_uri:
-                    source_n = self._source_list.get(self._media_uri, 'None')
+                    source_n = self._source_list.get(self._media_uri, None)
                 else:
                     source_n = self._source_list.get(source_t.lower(), None)
             else:
@@ -1546,8 +1546,8 @@ class LinkPlayDevice(MediaPlayerEntity):
             else:
                 self._source = source_t
             
-            if self._source != "WiFi" and not (self._playing_stream or self._playing_localfile):
-                if self._source == "Idle":
+            if self._source != 'Network' and not (self._playing_stream or self._playing_localfile):
+                if self._source == 'Idle':
                     self._media_title = None
                     self._state = STATE_IDLE
                 else:
@@ -1767,7 +1767,7 @@ class LastFMRestData:
         resource = "{0}{1}&{2}&api_key={3}&format=json".format(
             LASTFM_API_BASE, cmd, params, self._api_key)
         self._request = requests.Request(method, resource).prepare()
-        _LOGGER.debug("Updating LastFMRestData for %s from %s", self._name, self._request.url)
+        _LOGGER.debug("Updating LastFMRestData from %s", self._request.url)
         try:
             with requests.Session() as sess:
                 response = sess.send(
