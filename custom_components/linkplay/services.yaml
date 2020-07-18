@@ -22,7 +22,7 @@ snapshot:
       description: Entity ID of the player of which the snapshot should be saved.
       example: media_player.sound_room1
     switchinput:
-      description: Switch player to stream input along with snapshotting, before playing TTS. Applies for players with multiple inputs like Line-in, Optical, etc. Useful to handle the situation when first few seconds of the TTS message are cut off due to the latency of the player. If not specified, defaults to True.
+      description: Switch player to stream input along with snapshotting, before playing TTS. Applies for players with multiple inputs like Line-in, Optical, etc. Useful to handle the situation when first few seconds of the TTS message are cut off due to the latency of the player. Optional - if not specified, defaults to True.
       example: True
 
 restore:
@@ -52,3 +52,25 @@ command:
       description: Reboot, Rescan, PromptEnable, PromptDisable, SetRandomWifiKey, WriteDeviceNameToUnit, TimeSync, RouterMultiroomEnable
       example: Rescan
 
+get_tracks:
+  description: Retrieve the list of audio files available on the storage disk connected to the player, and fill an input_select with it.
+  fields:
+    entity_id:
+      description: Entity ID of the player on which the audio filenames list should be retrieved for.
+      example: media_player.sound_room1
+    input_select:
+      description: Entity ID of the input_select you want to populate with the audio track filenames retrieved from the device.
+      example: input_select.tracks_room1
+    source:
+      description: Optional - only 'USB' supported for now.
+      example: USB
+
+play_track:
+  description: Play media track by name found in the tracks list. This should be used in conjunction with an input_select populated with items using the linkplay.get_tracks service.
+  fields:
+    entity_id:
+      description: Entity ID of the player on which the playback wil be execuded.
+      example: media_player.sound_room1
+    track:
+      description: (Part of) The name of the track from the list
+      example: 'Commodores - Machine Gun Extended Mix.mp3'

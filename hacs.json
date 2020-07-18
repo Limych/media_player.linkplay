@@ -1,6 +1,6 @@
 {
   "name": "LinkPlay Sound Devices v2",
   "content_in_root": false,
-  "render_readme": true,
+  "render_readme": false,
   "domains": ["media_player"]
 }

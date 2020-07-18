@@ -59,6 +59,7 @@ UPNP_TIMEOUT = 2
 TCPPORT = 8899
 ICE_THROTTLE = timedelta(seconds=60)
 UNA_THROTTLE = timedelta(seconds=60)
+ROOTDIR_USB = '/media/sda1/'
 
 DEFAULT_ICECAST_UPDATE = 'StationName'
 DEFAULT_MULTIROOM_WIFIDIRECT = False
@@ -97,7 +98,7 @@ SOURCES_MAP = {'-1': 'Idle',
                '11': 'USB', 
                '16': 'SD', 
                '20': 'API', 
-               '21': 'USB', 
+               '21': 'USB-API', 
                '30': 'Alarm', 
                '31': 'Spotify', 
                '40': 'Line-in', 
@@ -192,6 +193,8 @@ class LinkPlayDevice(MediaPlayerEntity):
         self._upnp_device = None
         self._slave_mode = False
         self._slave_ip = None
+        self._trackq = []
+        self._trackc = None
         self._master = None
         self._is_master = False
         self._wifi_channel = None
@@ -424,13 +427,25 @@ class LinkPlayDevice(MediaPlayerEntity):
         attributes[ATTR_SLAVE] = self._slave_mode
         attributes[ATTR_FWVER] = self._fw_ver
         attributes[ATTR_DEVICE_CLASS] = DEVICE_CLASS_SPEAKER
-
+        if len(self._trackq) > 0:
+            attributes['track_count'] = len(self._trackq) - 1
+        else:
+            attributes['track_count'] = 0
+        attributes['track_current'] = self._trackc
         return attributes
 
     @property
     def host(self):
         """Self ip."""
         return self._host
+
+    @property
+    def track_count(self):
+        """List of tracks present on the device."""
+        if len(self._trackq) > 0:
+            return len(self._trackq) - 1
+        else:
+            return 0
 
     @property
     def fw_ver(self):
@@ -470,14 +485,14 @@ class LinkPlayDevice(MediaPlayerEntity):
             if value == "OK":
                 self._volume = volume
             else:
-                _LOGGER.warning("Failed to set volume. Got response: %s", value)
+                _LOGGER.warning("Failed to set volume. Device: %s, Got response: %s", self.entity_id, value)
         else:
             self._master.lpapi.call('GET', 'multiroom:SlaveVolume:{0}:{1}'.format(self._slave_ip, str(volume)))
             value = self._master.lpapi.data
             if value == "OK":
                 self._volume = volume
             else:
-                _LOGGER.warning("Failed to set volume. Got response: %s", value)
+                _LOGGER.warning("Failed to set volume. Device: %s, Got response: %s", self.entity_id, value)
 
     def mute_volume(self, mute):
         """Mute (true) or unmute (false) media player."""
@@ -487,14 +502,14 @@ class LinkPlayDevice(MediaPlayerEntity):
             if value == "OK":
                 self._muted = bool(int(mute))
             else:
-                _LOGGER.warning("Failed mute/unmute volume. Got response: %s", value)
+                _LOGGER.warning("Failed mute/unmute volume. Device: %s, Got response: %s", self.entity_id, value)
         else:
             self._master.lpapi.call('GET', 'multiroom:SlaveMute:{0}:{1}'.format(self._slave_ip, str(int(mute))))
             value = self._master.lpapi.data
             if value == "OK":
                 self._muted = bool(int(mute))
             else:
-                _LOGGER.warning("Failed mute/unmute volume. Got response: %s", value)
+                _LOGGER.warning("Failed mute/unmute volume. Device: %s, Got response: %s", self.entity_id, value)
 
     def media_play(self):
         """Send play command."""
@@ -529,7 +544,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                         slave.set_state(STATE_PLAYING)
                         slave.set_position_updated_at(self.media_position_updated_at)
             else:
-                _LOGGER.warning("Failed to start or resume playback. Got response: %s", value)
+                _LOGGER.warning("Failed to start or resume playback. Device: %s, Got response: %s", self.entity_id, value)
         else:
             self._master.media_play()
 
@@ -551,7 +566,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                         slave.trigger_schedule_update(True)
                         slave.set_position_updated_at(self.media_position_updated_at)
             else:
-                _LOGGER.warning("Failed to onepause playback. Got response: %s", value)
+                _LOGGER.warning("Failed to onepause playback. Device: %s, Got response: %s", self.entity_id, value)
         else:
             self._master.media_play_pause()
 
@@ -568,7 +583,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                         slave.set_state(STATE_PAUSED)
                         slave.set_position_updated_at(self.media_position_updated_at)
             else:
-                _LOGGER.warning("Failed to pause playback. Got response: %s", value)
+                _LOGGER.warning("Failed to pause playback. Device: %s, Got response: %s", self.entity_id, value)
         else:
             self._master.media_pause()
 
@@ -588,6 +603,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._media_album = None
                 self._icecast_name = None
                 self._media_uri = None
+                self._trackc = None
                 self._media_image_url = None
                 self._position_updated_at = utcnow()
                 self.schedule_update_ha_state(True)
@@ -596,7 +612,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                         slave.set_state(STATE_IDLE)
                         slave.set_position_updated_at(self.media_position_updated_at)
             else:
-                _LOGGER.warning("Failed to stop playback. Got response: %s", value)
+                _LOGGER.warning("Failed to stop playback. Device: %s, Got response: %s", self.entity_id, value)
         else:
             self._master.media_stop()
 
@@ -608,9 +624,10 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._playhead_position = 0
             self._duration = 0
             self._position_updated_at = utcnow()
+            self._trackc = None
             self._wait_for_mcu = 2
             if value != "OK":
-                _LOGGER.warning("Failed skip to next track. Got response: %s", value)
+                _LOGGER.warning("Failed skip to next track. Device: %s, Got response: %s", self.entity_id, value)
         else:
             self._master.media_next_track()
 
@@ -622,9 +639,10 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._playhead_position = 0
             self._duration = 0
             self._position_updated_at = utcnow()
+            self._trackc = None
             self._wait_for_mcu = 2
             if value != "OK":
-                _LOGGER.warning("Failed to skip to previous track." " Got response: %s", value)
+                _LOGGER.warning("Failed to skip to previous track." " Device: %s, Got response: %s", self.entity_id, value)
         else:
             self._master.media_previous_track()
 
@@ -636,7 +654,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._position_updated_at = utcnow()
             self._wait_for_mcu = 0.1
             if value != "OK":
-                _LOGGER.warning("Failed to seek. Got response: %s", value)
+                _LOGGER.warning("Failed to seek. Device: %s, Got response: %s", self.entity_id, value)
         else:
             self._master.media_seek(position)
 
@@ -654,7 +672,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._lpapi.call('GET', 'setPlayerCmd:play:{0}'.format(media_id))
             value = self._lpapi.data
             if value != "OK":
-                _LOGGER.warning("Failed to play media. Got response: %s", value)
+                _LOGGER.warning("Failed to play media. Device: %s, Got response: %s", self.entity_id, value)
                 return False
             else:
                 self._state = STATE_PLAYING
@@ -664,6 +682,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._icecast_name = None
                 self._playhead_position = 0
                 self._duration = 0
+                self._trackc = None
                 self._position_updated_at = utcnow()
                 self._media_image_url = None
                 self._media_uri = media_id
@@ -697,6 +716,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                     self._state = STATE_PLAYING
                     self._playhead_position = 0
                     self._duration = 0
+                    self._trackc = None
                     self._position_updated_at = utcnow()
                     self._media_title = None
                     self._media_artist = None
@@ -709,7 +729,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                         for slave in self._slave_list:
                             slave.set_source(source)
                 else:
-                    _LOGGER.warning("Failed to select http source and play. Got response: %s", value)
+                    _LOGGER.warning("Failed to select http source and play. Device: %s, Got response: %s", self.entity_id, value)
             else:
                 self._lpapi.call('GET', 'setPlayerCmd:switchmode:{0}'.format(temp_source))
                 value = self._lpapi.data
@@ -723,11 +743,12 @@ class LinkPlayDevice(MediaPlayerEntity):
                     self._state = STATE_PLAYING
                     self._playhead_position = 0
                     self._duration = 0
+                    self._trackc = None
                     if self._slave_list is not None:
                         for slave in self._slave_list:
                             slave.set_source(source)
                 else:
-                    _LOGGER.warning("Failed to select source. Got response: %s", value)
+                    _LOGGER.warning("Failed to select source. Device: %s, Got response: %s", self.entity_id, value)
 
             self.schedule_update_ha_state(True)
         else:
@@ -746,7 +767,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                     for slave in self._slave_list:
                         slave.set_sound_mode(sound_mode)
             else:
-                _LOGGER.warning("Failed to set sound mode. Got response: %s", value)
+                _LOGGER.warning("Failed to set sound mode. Device: %s, Got response: %s", self.entity_id, value)
         else:
             self._master.select_sound_mode(sound_mode)
 
@@ -757,7 +778,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._lpapi.call('GET', 'setPlayerCmd:loopmode:{0}'.format(mode))
             value = self._lpapi.data
             if value != "OK":
-                _LOGGER.warning("Failed to change shuffle mode. Got response: %s", value)
+                _LOGGER.warning("Failed to change shuffle mode. Device: %s, Got response: %s", self.entity_id, value)
         else:
             self._master.set_shuffle(shuffle)
 
@@ -769,14 +790,17 @@ class LinkPlayDevice(MediaPlayerEntity):
                     self._lpapi.call('GET', 'MCUKeyShortClick:{0}'.format(str(preset)))
                     value = self._lpapi.data
                     if value != "OK":
-                        _LOGGER.warning("Failed to recall preset %s. " "Got response: %s", preset, value)
+                        _LOGGER.warning("Failed to recall preset %s. " "Device: %s, Got response: %s", self.entity_id, preset, value)
                 else:
-                    _LOGGER.warning("Wrong preset number %s. Has to be integer between 1 and %s", preset, self._preset_key)
+                    _LOGGER.warning("Wrong preset number %s. Device: %s, has to be integer between 1 and %s", self.entity_id, preset, self._preset_key)
             else:
                 self._master.preset_button(preset)
 
     def join(self, slaves):
         """Add selected slaves to multiroom configuration."""
+        if self._state == STATE_UNAVAILABLE:
+            return
+            
         if self.entity_id not in self._multiroom_group:
             self._multiroom_group.append(self.entity_id)
             self._is_master = True
@@ -806,7 +830,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                     slave.set_features(self._features)
                     self._multiroom_group.append(slave.entity_id)
                 else:
-                    _LOGGER.warning("Failed to join multiroom from: %s", slave.entity_id)
+                    _LOGGER.warning("Failed to join multiroom. Master: %s, Slave: %s", self.entity_id, slave.entity_id)
 
         for slave in slaves:
             if slave.entity_id in self._multiroom_group:
@@ -819,6 +843,9 @@ class LinkPlayDevice(MediaPlayerEntity):
 
     def unjoin_all(self):
         """Disconnect everybody from the multiroom configuration because i'm the master."""
+        if self._state == STATE_UNAVAILABLE:
+            return
+
         cmd = "multiroom:Ungroup"
         self._lpapi.call('GET', cmd)
         value = self._lpapi.data
@@ -848,7 +875,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             self.schedule_update_ha_state(True)
 
         else:
-            _LOGGER.warning("Failed to unjoin_all multiroom. " "Got response: %s", value)
+            _LOGGER.warning("Failed to unjoin_all multiroom. " "Device: %s, Got response: %s", self.entity_id, value)
      
     def unjoin_me(self):
         """Disconnect myself from the multiroom configuration."""
@@ -866,7 +893,6 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._lpapi.call('GET', cmd)
             value = self._lpapi.data
 
-            
         if value == "OK":
             self._wait_for_mcu = 1
             if self._master is not None:
@@ -889,7 +915,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             self.schedule_update_ha_state(True)
             
         else:
-            _LOGGER.warning("Failed to unjoin_me from multiroom. " "Got response: %s", value)
+            _LOGGER.warning("Failed to unjoin_me from multiroom. " "Device: %s, Got response: %s", self.entity_id, value)
      
     def remove_from_group(self, device):
         """Remove a certain device for multiroom lists."""
@@ -970,7 +996,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                             player_status = json.loads(player_api_result)
                             self._snap_volume = int(player_status['vol'])
                         except ValueError:
-                            _LOGGER.warning("REST result could not be parsed as JSON")
+                            _LOGGER.warning("REST result could not be parsed as JSON: %s, %s", self.entity_id, self._name)
                             self._snap_volume = 0
                     else:
                         self._snap_volume = 0
@@ -1094,7 +1120,7 @@ class LinkPlayDevice(MediaPlayerEntity):
         if value == "OK":
             return True
         else:
-            _LOGGER.warning("Failed to run received command: %s, response %s", cmd, value)
+            _LOGGER.warning("Failed to run on %s received command: %s, response %s", self.entity_id, cmd, value)
 
     def _is_playing_new_track(self):
         """Check if track is changed since last update."""
@@ -1160,6 +1186,95 @@ class LinkPlayDevice(MediaPlayerEntity):
 
         if not validators.url(self._media_image_url):
             self._media_image_url = None
+
+    def _tracklist_via_upnp(self, media):
+        """Retrieve tracks list queue via UPNP."""
+        if self._upnp_device is None:
+            return
+
+        if media == 'USB':
+            queuename = 'USBDiskQueue'
+            rootdir = ROOTDIR_USB
+        else:
+            _LOGGER.warning("Tracklist retrieval: %s, %s is not supported. You can use only 'USB' for now.", self.entity_id, media_info)
+            return
+
+        try:
+            media_info = self._upnp_device.PlayQueue.BrowseQueue(QueueName=queuename)
+        except:
+            _LOGGER.warning("Tracklist get error: %s, %s", self.entity_id, media)
+            return
+
+        media_info = media_info.get('QueueContext')
+        xml_tree = ET.fromstring(media_info)
+
+        trackq = []
+        for playlist in xml_tree:
+           for tracks in playlist:
+               for track in tracks:
+                   if track.tag == 'URL':
+                       if rootdir in track.text:
+                           tracku = track.text.replace(rootdir,'')
+                           trackq.append(tracku)
+
+        if len(trackq) > 0:
+            trackq.insert(0, '____ ' + self._name + ' ____')
+            self._trackq = trackq
+
+#        _LOGGER.debug("Tracklist check: %s, tracklist: %s", self.entity_id, self._trackq)
+
+    def fill_input_select(self, in_slct, trk_src):
+        """Fill the specified input select with tracks list."""
+        self._tracklist_via_upnp(trk_src)
+        if len(self._trackq) > 0:
+            service_data = {'entity_id': in_slct, 'options': self._trackq}
+            self.hass.services.call('input_select', 'set_options', service_data)
+            return
+        else:
+            _LOGGER.debug("Retrieved tracklist empty: %s, tracklist: %s", self.entity_id, self._trackq)
+
+    def play_track(self, track):
+        """Play media track by name found in the tracks list."""
+        if not len(self._trackq) > 0 or track is None:
+            return
+
+        track.hass = self.hass   # render template
+        trackn = track.async_render()
+        
+        if not self._slave_mode:
+            try:
+                index = [idx for idx, s in enumerate(self._trackq) if trackn in s][0]
+            except (IndexError):
+                return
+
+            if not index > 0:
+                return
+
+            self._lpapi.call('GET', 'setPlayerCmd:playLocalList:{0}'.format(index))
+            value = self._lpapi.data
+            if value != "OK":
+                _LOGGER.warning("Failed to play media track by name. Device: %s, Got response: %s", self.entity_id, value)
+                return False
+            else:
+                self._state = STATE_PLAYING
+                self._wait_for_mcu = 0.4
+                self._media_title = None
+                self._media_artist = None
+                self._media_album = None
+                self._trackc = None
+                self._icecast_name = None
+                self._playhead_position = 0
+                self._duration = 0
+                self._position_updated_at = utcnow()
+                self._media_image_url = None
+                self._media_uri = None
+                self._ice_skip_throt = False
+                self._unav_throttle = False
+                self.schedule_update_ha_state(True)
+                return True
+        else:
+            self._master.play_track(track)
+
 
     @Throttle(ICE_THROTTLE)
     def _update_from_icecast(self):
@@ -1293,7 +1408,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             player_api_result = self._get_status('getPlayerStatus', no_throttle=True)
 
         if player_api_result is None:
-            _LOGGER.warning('Unable to connect to device')
+            _LOGGER.warning('Unable to connect to device: %s, %s', self.entity_id, self._name)
             self._unav_throttle = True
             self._state = STATE_UNAVAILABLE
             self._playhead_position = None
@@ -1307,12 +1422,12 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._icecast_name = None
             self._source = None
             self._upnp_device = None
-            return True
+            return
 
         try:
             player_status = json.loads(player_api_result)
         except ValueError:
-            _LOGGER.warning("REST result could not be parsed as JSON")
+            _LOGGER.warning("REST result could not be parsed as JSON: %s, %s", self.entity_id, self._name)
 
         if isinstance(player_status, dict):
             self._unav_throttle = False
@@ -1444,6 +1559,9 @@ class LinkPlayDevice(MediaPlayerEntity):
 
 #            _LOGGER.debug("State check 2: %s, %s, %s", self.entity_id, self._state, self._source)
             
+#            if self._source == 'USB':
+#                self._tracklist_via_upnp('USB')
+                
             if player_status['mode'] in ['1', '2', '3']:
                 self._media_title = self._source
                 self._state = STATE_PLAYING
@@ -1453,6 +1571,10 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._update_via_upnp()
 
             elif self._playing_localfile and self._state in [STATE_PLAYING, STATE_PAUSED]:
+                if player_status['uri'] != "":
+                    rootdir = ROOTDIR_USB
+                    self._trackc = str(bytearray.fromhex(player_status['uri']).decode('utf-8')).replace(rootdir,'')
+                
                 if player_status['Title'] != '':
                     status_title = str(bytearray.fromhex(player_status['Title']).decode('utf-8'))
                     if status_title.lower() != 'unknown':
@@ -1473,7 +1595,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                         self._media_album = None
                
                 if self._media_title is not None and self._media_artist is None:
-                    cutext = ['mp3', 'mp2', 'm2a', 'mpg', 'wav', 'aac', 'flac', 'flc', 'm4a', 'ape', 'ogg']
+                    cutext = ['mp3', 'mp2', 'm2a', 'mpg', 'wav', 'aac', 'flac', 'flc', 'm4a', 'ape', 'wma', 'ac3', 'ogg']
                     querywords = self._media_title.split('.')
                     resultwords  = [word for word in querywords if word.lower() not in cutext]
                     title = ' '.join(resultwords)
@@ -1507,7 +1629,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._media_prev_title = self._media_title
 
         else:
-            _LOGGER.warning("JSON A result was not a dictionary")
+            _LOGGER.warning("JSON A result was not a dictionary: %s, %s", self.entity_id, self._name)
 
         # Get multiroom slave information #
         self._lpapi.call('GET', 'multiroom:getSlaveList')
@@ -1521,7 +1643,7 @@ class LinkPlayDevice(MediaPlayerEntity):
         try:
             slave_list = json.loads(slave_list)
         except ValueError:
-            # _LOGGER.warning("REST result could not be parsed as JSON")
+            # _LOGGER.warning("REST result could not be parsed as JSON: %s, %s", self.entity_id, self._name)
             _LOGGER.debug("Erroneous JSON: %s", slave_list)
             slave_list = None
             self._slave_list = None
@@ -1563,7 +1685,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                                 device.set_multiroom_group(self._multiroom_group)
 
         else:
-            _LOGGER.warning("JSON B result was not a dictionary")
+            _LOGGER.warning("JSON B result was not a dictionary: %s, %s", self.entity_id, self._name)
 
         return True
 
