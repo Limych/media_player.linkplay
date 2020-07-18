@@ -1776,3 +1776,4 @@ class LastFMRestData:
         except requests.exceptions.RequestException as ex:
             # _LOGGER.warning("Error fetching data: %s from %s failed with %s", self._request, self._request.url, ex)
             self.data = None
+ 
