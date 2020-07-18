@@ -690,22 +690,18 @@ class LinkPlayDevice(MediaPlayerEntity):
 
     def select_source(self, source):
         """Select input source."""
-        _LOGGER.debug("Source check 0, source: %s, %s", self.entity_id, source)
         if not self._slave_mode:
             temp_source = next((k for k in self._source_list if self._source_list[k] == source), None)
-            _LOGGER.debug("Source check 1, temp_source: %s, %s", self.entity_id, temp_source)
             if temp_source == None:
                 return
 
             if len(self._source_list) > 0:
                 prev_source = next((k for k in self._source_list if self._source_list[k] == self._source), None)
-                _LOGGER.debug("Source check 2, prev_source: %s, %s", self.entity_id, prev_source)
 
             self._unav_throttle = False
             if temp_source.find('http') == 0:
                 self._lpapi.call('GET', 'setPlayerCmd:play:{0}'.format(temp_source))
                 value = self._lpapi.data
-                _LOGGER.debug("Source check 3a, value: %s, %s", self.entity_id, value)
                 if value == "OK":
                     if prev_source and prev_source.find('http') == -1:
                         self._wait_for_mcu = 2  # switching from live to stream input -> time to report correct volume value at update
@@ -724,7 +720,6 @@ class LinkPlayDevice(MediaPlayerEntity):
                     self._icecast_name = None
                     self._media_image_url = None
                     self._ice_skip_throt = True
-#                    _LOGGER.debug("State check 0: %s, %s, %s", self.entity_id, self._state, self._source)
                     if self._slave_list is not None:
                         for slave in self._slave_list:
                             slave.set_source(source)
@@ -733,7 +728,6 @@ class LinkPlayDevice(MediaPlayerEntity):
             else:
                 self._lpapi.call('GET', 'setPlayerCmd:switchmode:{0}'.format(temp_source))
                 value = self._lpapi.data
-                _LOGGER.debug("Source check 3b, value: %s, %s", self.entity_id, value)
                 if value == "OK":
                     if temp_source and (temp_source == 'udisk' or temp_source == 'TFcard'):
                         self._wait_for_mcu = 2    # switching to locally stored files -> time to report correct volume value at update
@@ -960,9 +954,16 @@ class LinkPlayDevice(MediaPlayerEntity):
             newkey = (''.join(choice(ascii_letters) for i in range(16)))
             self._lpapi.call('GET', 'setNetwork:1:{0}'.format(newkey))
             value = self._lpapi.data + ", key: " + newkey
-        elif command == 'WriteDeviceNameToUnit':
-            self._lpapi.call('GET', 'setDeviceName:{0}'.format(self._name))
-            value = self._lpapi.data + ", name: " + self._name
+        elif command.find('WriteDeviceNameToUnit:') == 0:
+            devnam = command.replace('WriteDeviceNameToUnit:', '').strip()
+            if devnam != '':
+                self._lpapi.call('GET', 'setDeviceName:{0}'.format(devnam))
+                value = self._lpapi.data
+                if value == 'OK':
+                    self._name = devnam
+                    value = self._lpapi.data + ", name set to: " + self._name
+            else:
+                value == "Device name not specified correctly. You need 'WriteDeviceNameToUnit: My Device Name'"
         elif command == 'TimeSync':
             tme = time.strftime('%Y%m%d%H%M%S')
             self._lpapi.call('GET', 'timeSync:{0}'.format(tme))
