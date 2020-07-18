@@ -29,7 +29,7 @@ from homeassistant.components.media_player.const import (
     SUPPORT_PLAY_MEDIA, SUPPORT_PREVIOUS_TRACK, SUPPORT_SEEK,
     SUPPORT_SELECT_SOUND_MODE, SUPPORT_SELECT_SOURCE, SUPPORT_SHUFFLE_SET,
     SUPPORT_VOLUME_MUTE, SUPPORT_VOLUME_SET, SUPPORT_STOP)
-from . import VERSION, ISSUE_URL, DOMAIN, ATTR_MASTER
+from . import DOMAIN, ATTR_MASTER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -75,42 +75,41 @@ PLATFORM_SCHEMA = vol.All(cv.PLATFORM_SCHEMA.extend({
 
 SOUND_MODES = {'0': 'Normal', '1': 'Classic', '2': 'Pop', '3': 'Jazz', '4': 'Vocal'}
 
-SOURCES = {'wifi': 'WiFi', 
+SOURCES = {'bluetooth': 'Bluetooth', 
            'line-in': 'Line-in', 
-           'line-in2': 'Line-in2', 
-           'bluetooth': 'Bluetooth', 
+           'line-in2': 'Line-in 2', 
            'optical': 'Optical', 
-           'rca': 'RCA', 
-           'co-axial': 'S-PDIF', 
-           'tfcard': 'SD',
-           'hdmi': 'HDMI',
-           'xlr': 'XLR', 
-           'fm': 'FM', 
-           'cd': 'CD', 
-           'udisk': 'USB'}
+           'co-axial': 'Coaxial', 
+           'HDMI': 'HDMI', 
+           'udisk': 'USB disk', 
+           'TFcard': 'SD card', 
+           'RCA': 'RCA', 
+           'XLR': 'XLR', 
+           'FM': 'FM', 
+           'cd': 'CD'}
 
 SOURCES_MAP = {'-1': 'Idle', 
                '0': 'Idle', 
                '1': 'Airplay', 
                '2': 'DLNA',
                '3': 'QPlay',
-               '10': 'WiFi', 
-               '11': 'USB', 
-               '16': 'SD', 
+               '10': 'Network', 
+               '11': 'udisk', 
+               '16': 'TFcard',
                '20': 'API', 
-               '21': 'USB-API', 
+               '21': 'udisk', 
                '30': 'Alarm', 
                '31': 'Spotify', 
-               '40': 'Line-in', 
-               '41': 'Bluetooth', 
-               '43': 'Optical',
+               '40': 'line-in', 
+               '41': 'bluetooth', 
+               '43': 'optical',
                '44': 'RCA',
-               '45': 'S-PDIF',
+               '45': 'co-axial',
                '46': 'FM',
-               '47': 'Line-in2', 
+               '47': 'line-in2', 
                '48': 'XLR',
                '49': 'HDMI',
-               '50': 'CD/Mirror',
+               '50': 'cd',
                '52': 'TFcard',
                '60': 'Talk',
                '99': 'Idle'}
@@ -127,9 +126,6 @@ class LinkPlayData:
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up the LinkPlay device."""
-    # Print startup message
-    _LOGGER.debug('Version %s', VERSION)
-    _LOGGER.info('If you have any issues with this you need to open an issue here: %s', ISSUE_URL)
 
     if DOMAIN not in hass.data:
         hass.data[DOMAIN] = LinkPlayData()
@@ -155,7 +151,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                  ):
         """Initialize the LinkPlay device."""
         self._fw_ver = '1.0.0'
-        self._uuid = None
+        self._uuid = ''
         self._features = None
         self._preset_key = 4
         self._name = name
@@ -166,7 +162,7 @@ class LinkPlayDevice(MediaPlayerEntity):
         self._fadevol = True
         self._source = None
         self._prev_source = None
-        if sources is not None:
+        if sources is not None and sources != {}:
             self._source_list = loads(dumps(sources).strip('[]'))
         else:
             self._source_list = SOURCES.copy()
@@ -269,7 +265,7 @@ class LinkPlayDevice(MediaPlayerEntity):
     @property
     def source(self):
         """Return the current input source."""
-        if self._source not in ['Idle', 'WiFi']:
+        if self._source not in ['Idle', 'Network']:
             return self._source
         else:
             return None
@@ -277,11 +273,11 @@ class LinkPlayDevice(MediaPlayerEntity):
     @property
     def source_list(self):
         """Return the list of available input sources. If only one source exists, don't show it, as it's one and only one - WiFi shouldn't be listed."""
-        if len(self._source_list) > 1:
-            source_list = self._source_list.copy()
-            if 'wifi' in source_list:
-                del source_list['wifi']
+        source_list = self._source_list.copy()
+        if 'wifi' in source_list:
+            del source_list['wifi']
 
+        if len(self._source_list) > 0:
             return list(source_list.values())
         else:
             return None
@@ -523,7 +519,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                 if temp_source == None:
                     return
 
-                if temp_source.find('http') == 0 or temp_source == 'udisk' or temp_source == 'tfcard':
+                if temp_source.find('http') == 0 or temp_source == 'udisk' or temp_source == 'TFcard':
                     self.select_source(self._prev_source)
                     if self._source != None:
                         self._source = None
@@ -699,7 +695,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             if temp_source == None:
                 return
 
-            if len(self._source_list) > 1:
+            if len(self._source_list) > 0:
                 prev_source = next((k for k in self._source_list if self._source_list[k] == self._source), None)
 
             self._unav_throttle = False
@@ -724,7 +720,6 @@ class LinkPlayDevice(MediaPlayerEntity):
                     self._icecast_name = None
                     self._media_image_url = None
                     self._ice_skip_throt = True
-#                    _LOGGER.debug("State check 0: %s, %s, %s", self.entity_id, self._state, self._source)
                     if self._slave_list is not None:
                         for slave in self._slave_list:
                             slave.set_source(source)
@@ -734,7 +729,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._lpapi.call('GET', 'setPlayerCmd:switchmode:{0}'.format(temp_source))
                 value = self._lpapi.data
                 if value == "OK":
-                    if temp_source and (temp_source == 'udisk' or temp_source == 'tfcard'):
+                    if temp_source and (temp_source == 'udisk' or temp_source == 'TFcard'):
                         self._wait_for_mcu = 2    # switching to locally stored files -> time to report correct volume value at update
                     else:
                         self._wait_for_mcu = 0.6  # switching to a physical input -> time to report correct volume value at update
@@ -959,9 +954,16 @@ class LinkPlayDevice(MediaPlayerEntity):
             newkey = (''.join(choice(ascii_letters) for i in range(16)))
             self._lpapi.call('GET', 'setNetwork:1:{0}'.format(newkey))
             value = self._lpapi.data + ", key: " + newkey
-        elif command == 'WriteDeviceNameToUnit':
-            self._lpapi.call('GET', 'setDeviceName:{0}'.format(self._name))
-            value = self._lpapi.data + ", name: " + self._name
+        elif command.find('WriteDeviceNameToUnit:') == 0:
+            devnam = command.replace('WriteDeviceNameToUnit:', '').strip()
+            if devnam != '':
+                self._lpapi.call('GET', 'setDeviceName:{0}'.format(devnam))
+                value = self._lpapi.data
+                if value == 'OK':
+                    self._name = devnam
+                    value = self._lpapi.data + ", name set to: " + self._name
+            else:
+                value == "Device name not specified correctly. You need 'WriteDeviceNameToUnit: My Device Name'"
         elif command == 'TimeSync':
             tme = time.strftime('%Y%m%d%H%M%S')
             self._lpapi.call('GET', 'timeSync:{0}'.format(tme))
@@ -1214,14 +1216,12 @@ class LinkPlayDevice(MediaPlayerEntity):
                for track in tracks:
                    if track.tag == 'URL':
                        if rootdir in track.text:
-                           tracku = track.text.replace(rootdir,'')
+                           tracku = track.text.replace(rootdir, '')
                            trackq.append(tracku)
 
         if len(trackq) > 0:
             trackq.insert(0, '____ ' + self._name + ' ____')
             self._trackq = trackq
-
-#        _LOGGER.debug("Tracklist check: %s, tracklist: %s", self.entity_id, self._trackq)
 
     def fill_input_select(self, in_slct, trk_src):
         """Fill the specified input select with tracks list."""
@@ -1438,7 +1438,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                     try:
                         device_status = json.loads(device_api_result)
                     except ValueError:
-                        _LOGGER.debug("Erroneous JSON: %s", device_api_result)
+                        _LOGGER.debug("Erroneous JSON: %s, %s", self.entity_id, device_api_result)
                         device_status = None
                     if isinstance(device_status, dict):
                         if self._state == STATE_UNAVAILABLE:
@@ -1461,7 +1461,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                         try:
                             self._uuid = device_status['uuid']  # FF31F09E - Arylic
                         except KeyError:
-                            self._uuid = None
+                            self._uuid = ''
                         if not self._multiroom_wifidierct and self._fw_ver:
                             if self._fwvercheck(self._fw_ver) < self._fwvercheck(FW_MROOM_RTR_MIN):
                                 self._multiroom_wifidierct = True
@@ -1502,8 +1502,6 @@ class LinkPlayDevice(MediaPlayerEntity):
                 'play': STATE_PLAYING,
                 'pause': STATE_PAUSED,
             }.get(player_status['status'], STATE_IDLE)
-            
-#            _LOGGER.debug("State check 1: %s, _state: %s, _source: %s", self.entity_id, self._state, self._source)
 
             self._playing_spotify = bool(player_status['mode'] == '31')
            
@@ -1528,24 +1526,21 @@ class LinkPlayDevice(MediaPlayerEntity):
             except KeyError:
                 pass
 
-#            _LOGGER.debug("State check 1,5: %s, %s, %s, %s", self.entity_id, self._state, self._playing_stream, self._media_uri)
-
-            source_t = SOURCES_MAP.get(player_status['mode'], 'WiFi')
-            if source_t == "WiFi":
+            source_t = SOURCES_MAP.get(player_status['mode'], 'Network')
+            source_n = None
+            if source_t == 'Network':
                 if self._media_uri:
-                    source_n = self._source_list.get(self._media_uri, 'None')
-                else:
-                    source_n = self._source_list.get(source_t.lower(), None)
+                    source_n = self._source_list.get(self._media_uri, None)
             else:
-                source_n = self._source_list.get(source_t.lower(), None)                
+                source_n = self._source_list.get(source_t, None)                
             
             if source_n != None:
                 self._source = source_n
             else:
                 self._source = source_t
             
-            if self._source != "WiFi" and not (self._playing_stream or self._playing_localfile):
-                if self._source == "Idle":
+            if self._source != 'Network' and not (self._playing_stream or self._playing_localfile):
+                if self._source == 'Idle':
                     self._media_title = None
                     self._state = STATE_IDLE
                 else:
@@ -1556,11 +1551,6 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._media_album = None
                 self._media_image_url = None
                 self._icecast_name = None
-
-#            _LOGGER.debug("State check 2: %s, %s, %s", self.entity_id, self._state, self._source)
-            
-#            if self._source == 'USB':
-#                self._tracklist_via_upnp('USB')
                 
             if player_status['mode'] in ['1', '2', '3']:
                 self._media_title = self._source
@@ -1571,14 +1561,18 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._update_via_upnp()
 
             elif self._playing_localfile and self._state in [STATE_PLAYING, STATE_PAUSED]:
-                if player_status['uri'] != "":
-                    rootdir = ROOTDIR_USB
-                    self._trackc = str(bytearray.fromhex(player_status['uri']).decode('utf-8')).replace(rootdir,'')
-                
+                try:
+                    if player_status['uri'] != "":
+                        rootdir = ROOTDIR_USB
+                        self._trackc = str(bytearray.fromhex(player_status['uri']).decode('utf-8')).replace(rootdir, '')
+                except KeyError:
+                    pass
                 if player_status['Title'] != '':
                     status_title = str(bytearray.fromhex(player_status['Title']).decode('utf-8'))
                     if status_title.lower() != 'unknown':
                         self._media_title = status_title
+                        if self._trackc == None:
+                            self._trackc = status_title
                     else:
                         self._media_title = None
                 if player_status['Artist'] != '':
@@ -1608,11 +1602,8 @@ class LinkPlayDevice(MediaPlayerEntity):
                         self._media_title = title.strip().strip('-')
                 else:
                     self._media_title = self._source
-
-#            _LOGGER.debug("State check 3: %s, %s, %s", self.entity_id, self._media_uri, self._playing_stream)
             
             elif self._state == STATE_PLAYING and self._media_uri and int(player_status['totlen']) <= 0 and self._snap_source == None:
-#                _LOGGER.debug("State check 4: %s, %s, %s", self.entity_id, self._media_uri, self._ice_skip_throt)
                 if self._ice_skip_throt:
                     self._update_from_icecast(no_throttle=True)
                     self._ice_skip_throt = False
@@ -1644,7 +1635,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             slave_list = json.loads(slave_list)
         except ValueError:
             # _LOGGER.warning("REST result could not be parsed as JSON: %s, %s", self.entity_id, self._name)
-            _LOGGER.debug("Erroneous JSON: %s", slave_list)
+            _LOGGER.debug("Erroneous JSON: %s, %s", self.entity_id, slave_list)
             slave_list = None
             self._slave_list = None
             self._multiroom_group = []
@@ -1766,7 +1757,6 @@ class LastFMRestData:
             LASTFM_API_BASE, cmd, params, self._api_key)
         self._request = requests.Request(method, resource).prepare()
         _LOGGER.debug("Updating LastFMRestData from %s", self._request.url)
-
         try:
             with requests.Session() as sess:
                 response = sess.send(

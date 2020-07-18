@@ -6,7 +6,7 @@ Fully compatible with [Mini Media Player card for Lovelace UI](https://github.co
 
 ## Installation
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
-* Install using HACS, or manually: copy all files in custom_components/linkplay to your <config directory>/custom_components/linkplay/ directory.
+* Install using HACS, or manually: copy all files in `custom_components/linkplay` to your `<config directory>/custom_components/linkplay/` directory.
 * Restart Home-Assistant.
 * Add the configuration to your configuration.yaml.
 * Restart Home-Assistant again.
@@ -16,78 +16,73 @@ This **will overwrite** the previous **Linkplay Sound Devices Integration** comp
 
 [Support forum](https://community.home-assistant.io/t/linkplay-integration/33878/133)
 
-### Example configuration entry
+### Configuration
 
-1. To add Linkplay device to your installation, add the following to your `configuration.yaml` file:
+It is recommended to create static DHCP leases in your network router to ensure the devices always get the same IP address. To add Linkplay units to your installation, add the following to your `configuration.yaml` file:
 
-    ```yaml
-    # Example configuration.yaml entry
-    media_player:
-        - platform: linkplay
-          host: 192.168.1.11
-          name: Sound Room1
-          icecast_metadata: 'StationNameSongTitle'
-          multiroom_wifidirect: False
-          sources: 
-            {
-              'wifi': 'WiFi', 
-              'optical': 'TV sound', 
-              'line-in': 'Radio tuner', 
-              'bluetooth': 'Bluetooth',
-              'udisk': 'USB HDD'
-              'http://94.199.183.186:8000/jazzy-soul.mp3': 'Jazzy Soul',
-            }
+```yaml
+# Example configuration.yaml entry
+media_player:
+    - platform: linkplay
+      host: 192.168.1.11
+      name: Sound Room1
+      icecast_metadata: 'StationNameSongTitle'
+      multiroom_wifidirect: False
+      sources: 
+        {
+          'optical': 'TV sound', 
+          'line-in': 'Radio tuner', 
+          'bluetooth': 'Bluetooth',
+          'udisk': 'USB stick'
+          'http://94.199.183.186:8000/jazzy-soul.mp3': 'Jazzy Soul',
+        }
 
-        - platform: linkplay
-          host: 192.168.1.12
-          name: Sound Room2
-          icecast_metadata: 'Off'  # valid values: 'Off', 'StationName', 'StationNameSongTitle'
-          sources: 
-            {
-              'wifi': 'WiFi'
-            }
-    ```
+    - platform: linkplay
+      host: 192.168.1.12
+      name: Sound Room2
+      icecast_metadata: 'Off'  # valid values: 'Off', 'StationName', 'StationNameSongTitle'
+      sources: {}
+```
 
 ### Configuration Variables
 
 **host:**\
-  *(string)* *(Required)* The host name or IP address of the Linkplay unit.
+  *(string)* *(Required)* The IP address of the Linkplay unit.
 
 **name:**\
   *(string)* *(Required)* Name that Home Assistant will generate the `entity_id` based on. It is also the base of the friendly name seen in Lovelace UI, but will be overriden by the device name set in the Android app.
 
-**icecast_metadata:**\
-  *(string)* *(Optional)* When playing icecast webradio streams, how to handle metadata. Valid values here are `'Off'`, `'StationName'`, `'StationNameSongTitle'`, defaulting to `'StationName'` when not set. With `'Off'`, Home Assistant will not try do request any metadata from the IceCast server. With `'StationName'`, Home Assistant will request from the headers only once when starting the playback the stream name, and display it in the `media_title` property of the player. With `'StationNameSongTitle'` Home Assistant will request the stream server periodically for icy-metadata, and read out `StreamTitle`, trying to figure out correct values for `media_title` and `media_artist`, in order to gather cover art information from LastFM service (see below). The stream name (usually the name of the radio station) will be placed in the `friendly_name` property of the player while playing. Note that this depends on how the icecast radio station servers and encoders are configured, if they don't provide proper metadata, it's better to turn it off or just use StationName to save server load.
-
-**multiroom_wifidirect:**\
-  *(boolean)* *(Optional)* Set to `True` to override the default router mode used by the component with wifi-direct connection mode (more details below).
-
-**lastfm_api_key:**\
-  *(string)* *(Optional)* API key to LastFM service to get album covers. Register for one.
-
 **sources:**\
-  *(list)* *(Optional)* A list with available sources on the device. If not specified, the integration will assume all sources are present on it:
+  *(list)* *(Optional)* A list with available source inputs on the device. If not specified, the integration will assume that all the supported source input types are present on it:
 ```yaml
-'wifi': 'WiFi', 
-'line-in': 'Line-in', 
-'line-in2': 'Line-in2', 
 'bluetooth': 'Bluetooth', 
+'line-in': 'Line-in', 
+'line-in2': 'Line-in 2', 
 'optical': 'Optical', 
-'rca': 'RCA', 
-'co-axial': 'S-PDIF', 
-'tfcard': 'SD',
-'hdmi': 'HDMI',
-'xlr': 'XLR', 
-'fm': 'FM', 
-'cd': 'CD', 
-'udisk': 'USB'
+'co-axial': 'Coaxial', 
+'HDMI': 'HDMI', 
+'udisk': 'USB disk', 
+'TFcard': 'SD card', 
+'RCA': 'RCA', 
+'XLR': 'XLR', 
+'FM': 'FM', 
+'cd': 'CD'
 ```
 The sources can be renamed to your preference (change only the part after **:** ). You can also specify http-based (Icecast / Shoutcast) internet radio streams as input sources:
 ```yaml
 'http://1.2.3.4:8000/your_radio': 'Your Radio',
 'http://icecast.streamserver.tld/mountpoint.aac': 'Another radio',
 ```
-At least one source should be present if you use the `sources:` option, for units without any extra source input (like Audiocast M5) you should leave just `'wifi': 'WiFi'` if you don't want any webradios, that will actually hide the source switch as it's useless.
+If you don't want a source selector to be available at all, set option to `sources: {}`.
+
+**icecast_metadata:**\
+  *(string)* *(Optional)* When playing icecast webradio streams, how to handle metadata. Valid values here are `'Off'`, `'StationName'`, `'StationNameSongTitle'`, defaulting to `'StationName'` when not set. With `'Off'`, Home Assistant will not try do request any metadata from the IceCast server. With `'StationName'`, Home Assistant will request from the headers only once when starting the playback the stream name, and display it in the `media_title` property of the player. With `'StationNameSongTitle'` Home Assistant will request the stream server periodically for icy-metadata, and read out `StreamTitle`, trying to figure out correct values for `media_title` and `media_artist`, in order to gather cover art information from LastFM service (see below). Note that metadata retrieval success depends on how the icecast radio station servers and encoders are configured, if they don't provide proper infos or they don't display correctly, it's better to turn it off or just use StationName to save server load. There's no standard way enforced on the servers.
+
+**lastfm_api_key:**\
+  *(string)* *(Optional)* API key to LastFM service to get album covers. Register for one.
+
+**multiroom_wifidirect:**\
+  *(boolean)* *(Optional)* Set to `True` to override the default router mode used by the component with wifi-direct connection mode (more details below).
 
 ## Multiroom
 
@@ -95,7 +90,7 @@ Linkplay devices support multiroom in two modes:
 - WiFi direct mode, where the master turns into a hidden AP and the slaves connect diretcly to it. The advantage is that this is a dedicated direct connection between the speakers, with network parameters optimized by the factory for streaming. Disadvantage is that switching of the stream is slower, plus the coverage can be limited due to the building's specifics. This is the default method used by the Android app to create multirooms.
 - Router mode, where the master and slaves connect to each other through the local network (from firmware v4.2.8020 up). The advantage is that all speakers remain connected to the existing network, swicthing the stream happens faster, and the coverage can be bigger being ensured by the network infrastructure of the building (works through multiple interconnected APs and switches). Disadvantage is that the network is not dedicated and it's the user responsibility to provide proper network infrastructure for reliable streaming.
 
-This integration will autodetect the firmware version running on the player and choose multiroom mode accordingly. Units with firmware version lower than v4.2.8020 will be autodetected and they connect to multirooms only in wifi-direct mode. Firmware version number can be seen in device attributes. Can be overriden with option `multiroom_wifidirect: True`, and is needed only for units with newer versions if the user has a mix of players running old and new firmware.
+This integration will autodetect the firmware version running on the player and choose multiroom mode accordingly. Units with firmware version lower than v4.2.8020 can connect to multirooms only in wifi-direct mode. Can be overriden with option `multiroom_wifidirect: True`, and is needed only for units with newer versions if the user has a mix of players running old and new firmware. Firmware version number can be seen in device attributes. 
 
 To create a multiroom group, connect `media_player.sound_room2` (slave) to `media_player.sound_room1` (master):
 ```yaml
@@ -110,7 +105,7 @@ To exit from the multiroom group, use the entity ids of the players that need to
       data:
         entity_id: media_player.sound_room1
 ```
-These services are compatible out of the box with the gpeaker group object in @kalkih's [Mini Media Player](https://github.com/kalkih/mini-media-player) card for Lovelace UI.
+These services are compatible out of the box with the speaker group object in @kalkih's [Mini Media Player](https://github.com/kalkih/mini-media-player) card for Lovelace UI.
 
 ## Presets
 
@@ -121,7 +116,7 @@ Linkplay devices allow to save, using the control app on the phone/tablet, music
         entity_id: media_player.sound_room1
         preset: 1
 ```
-Preset count vary from device tyoe, usually the app shows how many presets can be stored maximum. The integration detects the max number and the command only accepts numbers from the allowed range.
+Preset count vary from device tyoe to type, usually the app shows how many presets can be stored maximum. The integration detects the max number and the command only accepts numbers from the allowed range.
 
 ## Snapshot and restore
 
@@ -137,7 +132,7 @@ To restore the player state:
       data:
         entity_id: media_player.sound_room1
 ```
-Currently only the input source selection is being snapshotted/restored.
+Currently only the input source selection and the volume is being snapshotted/restored.
 
 ## Browsing media files through Lovelace UI
 
@@ -155,12 +150,12 @@ input_select:
 ```
 Tip: at `Room1` you should specify the same name that you used when you named the device in the Android app. Keep the underscores.
 
-Add to your automations the followings (load the list when changing source to USB; clear the list when changing to other source; play the selected track):
+Add to your automations the followings (load the list when changing source to `USB stick`; clear the list when changing to other source; play the selected track):
 ```yaml
 - alias: 'Music list load'
   trigger:
     platform: template
-    value_template: "{% if is_state_attr('media_player.sound_room1', 'source', 'USB') %}True{% endif %}"
+    value_template: "{% if is_state_attr('media_player.sound_room1', 'source', 'USB stick') %}True{% endif %}"
   action:
     - service: linkplay.get_tracks
       data:
@@ -170,7 +165,7 @@ Add to your automations the followings (load the list when changing source to US
 - alias: 'Music list clear'
   trigger:
     platform: template
-    value_template: "{% if not(is_state_attr('media_player.sound_room1', 'source', 'USB')) %}True{% endif %}"
+    value_template: "{% if not(is_state_attr('media_player.sound_room1', 'source', 'USB stick')) %}True{% endif %}"
   action:
     - service: input_select.set_options
       data:
@@ -192,7 +187,16 @@ You can use @mattieha's [Select List Card](https://github.com/mattieha/select-li
 
 ## Automation examples
 
-To select an input and set volume and unmute via an automation:
+Play a webradio stream directly:
+```yaml
+    - service: media_player.play_media
+      data:
+        entity_id: media_player.sound_room1
+        media_content_id: 'http://icecast.streamserver.tld/mountpoint.mp3'
+        media_content_type: url
+```
+
+Select an input and set volume and unmute via an automation:
 ```yaml
 - alias: 'Switch to the line input of the TV when TV turns on'
   trigger:
@@ -215,7 +219,7 @@ To select an input and set volume and unmute via an automation:
 ```
 Note that you have to specify source names as you've set them in the configuration of the component.
 
-To intrerupt playback of a source, say a TTS message and resume playback afterwards:
+Intrerupt playback of a source, say a TTS message and resume playback afterwards:
 ```yaml
 - alias: 'Notify by TTS that Mary has arrived'
   trigger:
@@ -240,7 +244,6 @@ To intrerupt playback of a source, say a TTS message and resume playback afterwa
         entity_id: media_player.sound_room1
 ```
 
-
 ## Specific commands
 
 Linkplay devices support some commands through the API, this is a wrapper to be able to use these in Home Assistant:
@@ -255,7 +258,7 @@ Implemented commands:
 - `Rescan` - do not wait for the current 60 second throttle cycle to reconnect to the unavailable devices, trigger testing for availability immediately
 - `PromptEnable` and `PromptDisable` - enable or disable the audio prompts played through the speakers when connecting to the network or joining multiroom etc.
 - `SetRandomWifiKey`- just as an extra security feature, one could make an automation to change the keys on the linkplay APs to some random values periodically.
-- `WriteDeviceNameToUnit` - write the name configured in Home Assistant to the player’s firmware so that the names would match exactly in order to have multiroom in wifi direct mode fully operational (not needed for router mode)
+- `WriteDeviceNameToUnit: My Device Name` - change the friendly name of the device both in firmware and in Home Assistant.
 - `TimeSync` - is for units on networks not connected to internet to compensate for an unreachable NTP server. Correct time is needed for the alarm clock functionality (not implemented yet here)
 - `RouterMultiroomEnable` - theoretically router mode is enabled by default in firmwares above v4.2.8020, but there’s also a logic included to build it up, this command ensures to set the good priority. Only use if you have issues with multiroom in router mode.
 
