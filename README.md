@@ -16,9 +16,9 @@ This **will overwrite** the previous **Linkplay Sound Devices Integration** comp
 
 [Support forum](https://community.home-assistant.io/t/linkplay-integration/33878/133)
 
-### Example configuration entry
+### Configuration
 
-1. To add Linkplay device to your installation, add the following to your `configuration.yaml` file:
+It is recommended to create static DHCP leases in your network router to ensure the devices always get the same IP address. To add Linkplay units to your installation, add the following to your `configuration.yaml` file:
 
 ```yaml
 # Example configuration.yaml entry
@@ -47,19 +47,10 @@ media_player:
 ### Configuration Variables
 
 **host:**\
-  *(string)* *(Required)* The host name or IP address of the Linkplay unit.
+  *(string)* *(Required)* The IP address of the Linkplay unit.
 
 **name:**\
   *(string)* *(Required)* Name that Home Assistant will generate the `entity_id` based on. It is also the base of the friendly name seen in Lovelace UI, but will be overriden by the device name set in the Android app.
-
-**icecast_metadata:**\
-  *(string)* *(Optional)* When playing icecast webradio streams, how to handle metadata. Valid values here are `'Off'`, `'StationName'`, `'StationNameSongTitle'`, defaulting to `'StationName'` when not set. With `'Off'`, Home Assistant will not try do request any metadata from the IceCast server. With `'StationName'`, Home Assistant will request from the headers only once when starting the playback the stream name, and display it in the `media_title` property of the player. With `'StationNameSongTitle'` Home Assistant will request the stream server periodically for icy-metadata, and read out `StreamTitle`, trying to figure out correct values for `media_title` and `media_artist`, in order to gather cover art information from LastFM service (see below). The stream name (usually the name of the radio station) will be placed in the `friendly_name` property of the player while playing. Note that this depends on how the icecast radio station servers and encoders are configured, if they don't provide proper metadata, it's better to turn it off or just use StationName to save server load.
-
-**multiroom_wifidirect:**\
-  *(boolean)* *(Optional)* Set to `True` to override the default router mode used by the component with wifi-direct connection mode (more details below).
-
-**lastfm_api_key:**\
-  *(string)* *(Optional)* API key to LastFM service to get album covers. Register for one.
 
 **sources:**\
   *(list)* *(Optional)* A list with available source inputs on the device. If not specified, the integration will assume that all the supported source input types are present on it:
@@ -83,6 +74,15 @@ The sources can be renamed to your preference (change only the part after **:** 
 'http://icecast.streamserver.tld/mountpoint.aac': 'Another radio',
 ```
 If you don't want a source selector to be available at all, set option to `sources: {}`.
+
+**icecast_metadata:**\
+  *(string)* *(Optional)* When playing icecast webradio streams, how to handle metadata. Valid values here are `'Off'`, `'StationName'`, `'StationNameSongTitle'`, defaulting to `'StationName'` when not set. With `'Off'`, Home Assistant will not try do request any metadata from the IceCast server. With `'StationName'`, Home Assistant will request from the headers only once when starting the playback the stream name, and display it in the `media_title` property of the player. With `'StationNameSongTitle'` Home Assistant will request the stream server periodically for icy-metadata, and read out `StreamTitle`, trying to figure out correct values for `media_title` and `media_artist`, in order to gather cover art information from LastFM service (see below). Note that metadata retrieval success depends on how the icecast radio station servers and encoders are configured, if they don't provide proper infos or they don't display correctly, it's better to turn it off or just use StationName to save server load. There's no standard way enforced on the servers.
+
+**lastfm_api_key:**\
+  *(string)* *(Optional)* API key to LastFM service to get album covers. Register for one.
+
+**multiroom_wifidirect:**\
+  *(boolean)* *(Optional)* Set to `True` to override the default router mode used by the component with wifi-direct connection mode (more details below).
 
 ## Multiroom
 
