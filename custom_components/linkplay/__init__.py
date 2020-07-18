@@ -10,9 +10,6 @@ import voluptuous as vol
 from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.helpers import config_validation as cv
 
-VERSION = '2.0.0'
-ISSUE_URL = 'https://github.com/nagyrobi/home-assistant-custom-components-linkplay/issues'
-
 DOMAIN = 'linkplay'
 
 SERVICE_JOIN = 'join'
