@@ -75,10 +75,6 @@ PLATFORM_SCHEMA = vol.All(cv.PLATFORM_SCHEMA.extend({
 
 SOUND_MODES = {'0': 'Normal', '1': 'Classic', '2': 'Pop', '3': 'Jazz', '4': 'Vocal'}
 
-
-#'wifi': 'Network', 
-#           
-
 SOURCES = {'bluetooth': 'Bluetooth', 
            'line-in': 'Line-in', 
            'line-in2': 'Line-in 2', 
@@ -99,9 +95,9 @@ SOURCES_MAP = {'-1': 'Idle',
                '3': 'QPlay',
                '10': 'Network', 
                '11': 'udisk', 
-               '16': 'TFcard',   # 'SD card'
+               '16': 'TFcard',
                '20': 'API', 
-               '21': 'USB', 
+               '21': 'udisk', 
                '30': 'Alarm', 
                '31': 'Spotify', 
                '40': 'line-in', 
