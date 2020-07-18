@@ -66,20 +66,20 @@ This **will overwrite** the previous **Linkplay Sound Devices Integration** comp
   *(string)* *(Optional)* API key to LastFM service to get album covers. Register for one.
 
 **sources:**\
-  *(list)* *(Optional)* A list with available sources on the device. If not specified, the integration will assume all sources are present on it:
+  *(list)* *(Optional)* A list with available sources on the device. If not specified, the integration will assume these sources are present on it:
 ```yaml
-'wifi': 'WiFi', 
-'line-in': 'Line-in', 
-'line-in2': 'Line-in2', 
 'bluetooth': 'Bluetooth', 
+'line-in': 'Line-in', 
+'line-in2': 'Line-in 2', 
 'optical': 'Optical', 
-'rca': 'RCA', 
-'co-axial': 'S-PDIF', 
-'tfcard': 'SD',
-'hdmi': 'HDMI',
-'xlr': 'XLR', 
-'fm': 'FM', 
-'cd': 'CD', 
+'co-axial': 'Coaxial', 
+'HDMI': 'HDMI', 
+'udisk': 'USB disk', 
+'TFcard': 'SD card', 
+'RCA': 'RCA', 
+'XLR': 'XLR', 
+'FM': 'FM', 
+'cd': 'CD'
 'udisk': 'USB'
 ```
 The sources can be renamed to your preference (change only the part after **:** ). You can also specify http-based (Icecast / Shoutcast) internet radio streams as input sources:
@@ -87,7 +87,7 @@ The sources can be renamed to your preference (change only the part after **:** 
 'http://1.2.3.4:8000/your_radio': 'Your Radio',
 'http://icecast.streamserver.tld/mountpoint.aac': 'Another radio',
 ```
-At least one source should be present if you use the `sources:` option, for units without any extra source input (like Audiocast M5) you should leave just `'wifi': 'WiFi'` if you don't want any webradios, that will actually hide the source switch as it's useless.
+At least one source should be present if you use the `sources:` option, for units without any extra source input (like Audiocast M5) you should leave just `'wifi': 'Network'` if you don't want any webradios, that will actually hide the source switch as it's useless (this is a dummy input covering all the streaming sources, selecting it on it's own results to nothing).
 
 ## Multiroom
 
