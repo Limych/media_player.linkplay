@@ -151,7 +151,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                  ):
         """Initialize the LinkPlay device."""
         self._fw_ver = '1.0.0'
-        self._uuid = None
+        self._uuid = ''
         self._features = None
         self._preset_key = 4
         self._name = name
@@ -1215,14 +1215,12 @@ class LinkPlayDevice(MediaPlayerEntity):
                for track in tracks:
                    if track.tag == 'URL':
                        if rootdir in track.text:
-                           tracku = track.text.replace(rootdir,'')
+                           tracku = track.text.replace(rootdir, '')
                            trackq.append(tracku)
 
         if len(trackq) > 0:
             trackq.insert(0, '____ ' + self._name + ' ____')
             self._trackq = trackq
-
-#        _LOGGER.debug("Tracklist check: %s, tracklist: %s", self.entity_id, self._trackq)
 
     def fill_input_select(self, in_slct, trk_src):
         """Fill the specified input select with tracks list."""
@@ -1462,7 +1460,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                         try:
                             self._uuid = device_status['uuid']  # FF31F09E - Arylic
                         except KeyError:
-                            self._uuid = None
+                            self._uuid = ''
                         if not self._multiroom_wifidierct and self._fw_ver:
                             if self._fwvercheck(self._fw_ver) < self._fwvercheck(FW_MROOM_RTR_MIN):
                                 self._multiroom_wifidierct = True
@@ -1565,9 +1563,9 @@ class LinkPlayDevice(MediaPlayerEntity):
                 try:
                     if player_status['uri'] != "":
                         rootdir = ROOTDIR_USB
-                        self._trackc = str(bytearray.fromhex(player_status['uri']).decode('utf-8')).replace(rootdir,'')
-                    except KeyError:
-                        pass                
+                        self._trackc = str(bytearray.fromhex(player_status['uri']).decode('utf-8')).replace(rootdir, '')
+                except KeyError:
+                    pass
                 if player_status['Title'] != '':
                     status_title = str(bytearray.fromhex(player_status['Title']).decode('utf-8'))
                     if status_title.lower() != 'unknown':
