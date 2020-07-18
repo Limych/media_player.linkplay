@@ -75,8 +75,11 @@ PLATFORM_SCHEMA = vol.All(cv.PLATFORM_SCHEMA.extend({
 
 SOUND_MODES = {'0': 'Normal', '1': 'Classic', '2': 'Pop', '3': 'Jazz', '4': 'Vocal'}
 
-SOURCES = {'wifi': 'Network', 
-           'bluetooth': 'Bluetooth', 
+
+#'wifi': 'Network', 
+#           
+
+SOURCES = {'bluetooth': 'Bluetooth', 
            'line-in': 'Line-in', 
            'line-in2': 'Line-in 2', 
            'optical': 'Optical', 
@@ -95,23 +98,23 @@ SOURCES_MAP = {'-1': 'Idle',
                '2': 'DLNA',
                '3': 'QPlay',
                '10': 'Network', 
-               '11': 'USB disk', 
-               '16': 'SD card', 
+               '11': 'udisk', 
+               '16': 'TFcard',   # 'SD card'
                '20': 'API', 
-               '21': 'USB-API', 
+               '21': 'USB', 
                '30': 'Alarm', 
                '31': 'Spotify', 
-               '40': 'Line-in', 
-               '41': 'Bluetooth', 
-               '43': 'Optical',
+               '40': 'line-in', 
+               '41': 'bluetooth', 
+               '43': 'optical',
                '44': 'RCA',
-               '45': 'S-PDIF',
+               '45': 'co-axial',
                '46': 'FM',
-               '47': 'Line-in2', 
+               '47': 'line-in2', 
                '48': 'XLR',
                '49': 'HDMI',
-               '50': 'CD/Mirror',
-               '52': 'SD card',
+               '50': 'cd',
+               '52': 'TFcard',
                '60': 'Talk',
                '99': 'Idle'}
 
@@ -163,7 +166,7 @@ class LinkPlayDevice(MediaPlayerEntity):
         self._fadevol = True
         self._source = None
         self._prev_source = None
-        if sources is not None:
+        if sources is not None and sources != {}:
             self._source_list = loads(dumps(sources).strip('[]'))
         else:
             self._source_list = SOURCES.copy()
@@ -274,11 +277,11 @@ class LinkPlayDevice(MediaPlayerEntity):
     @property
     def source_list(self):
         """Return the list of available input sources. If only one source exists, don't show it, as it's one and only one - WiFi shouldn't be listed."""
-        if len(self._source_list) > 1:
-            source_list = self._source_list.copy()
-            if 'wifi' in source_list:
-                del source_list['wifi']
+        source_list = self._source_list.copy()
+        if 'wifi' in source_list:
+            del source_list['wifi']
 
+        if len(self._source_list) > 0:
             return list(source_list.values())
         else:
             return None
@@ -698,7 +701,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             if temp_source == None:
                 return
 
-            if len(self._source_list) > 1:
+            if len(self._source_list) > 0:
                 prev_source = next((k for k in self._source_list if self._source_list[k] == self._source), None)
                 _LOGGER.debug("Source check 2, prev_source: %s, %s", self.entity_id, prev_source)
 
@@ -1504,8 +1507,6 @@ class LinkPlayDevice(MediaPlayerEntity):
                 'play': STATE_PLAYING,
                 'pause': STATE_PAUSED,
             }.get(player_status['status'], STATE_IDLE)
-            
-#            _LOGGER.debug("State check 1: %s, _state: %s, _source: %s", self.entity_id, self._state, self._source)
 
             self._playing_spotify = bool(player_status['mode'] == '31')
            
@@ -1530,16 +1531,13 @@ class LinkPlayDevice(MediaPlayerEntity):
             except KeyError:
                 pass
 
-#            _LOGGER.debug("State check 1,5: %s, %s, %s, %s", self.entity_id, self._state, self._playing_stream, self._media_uri)
-
             source_t = SOURCES_MAP.get(player_status['mode'], 'Network')
+            source_n = None
             if source_t == 'Network':
                 if self._media_uri:
                     source_n = self._source_list.get(self._media_uri, None)
-                else:
-                    source_n = self._source_list.get(source_t.lower(), None)
             else:
-                source_n = self._source_list.get(source_t.lower(), None)                
+                source_n = self._source_list.get(source_t, None)                
             
             if source_n != None:
                 self._source = source_n
@@ -1558,11 +1556,6 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._media_album = None
                 self._media_image_url = None
                 self._icecast_name = None
-
-#            _LOGGER.debug("State check 2: %s, %s, %s", self.entity_id, self._state, self._source)
-            
-#            if self._source == 'USB':
-#                self._tracklist_via_upnp('USB')
                 
             if player_status['mode'] in ['1', '2', '3']:
                 self._media_title = self._source
@@ -1573,14 +1566,18 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._update_via_upnp()
 
             elif self._playing_localfile and self._state in [STATE_PLAYING, STATE_PAUSED]:
-                if player_status['uri'] != "":
-                    rootdir = ROOTDIR_USB
-                    self._trackc = str(bytearray.fromhex(player_status['uri']).decode('utf-8')).replace(rootdir,'')
-                
+                try:
+                    if player_status['uri'] != "":
+                        rootdir = ROOTDIR_USB
+                        self._trackc = str(bytearray.fromhex(player_status['uri']).decode('utf-8')).replace(rootdir,'')
+                    except KeyError:
+                        pass                
                 if player_status['Title'] != '':
                     status_title = str(bytearray.fromhex(player_status['Title']).decode('utf-8'))
                     if status_title.lower() != 'unknown':
                         self._media_title = status_title
+                        if self._trackc == None:
+                            self._trackc = status_title
                     else:
                         self._media_title = None
                 if player_status['Artist'] != '':
@@ -1610,11 +1607,8 @@ class LinkPlayDevice(MediaPlayerEntity):
                         self._media_title = title.strip().strip('-')
                 else:
                     self._media_title = self._source
-
-#            _LOGGER.debug("State check 3: %s, %s, %s", self.entity_id, self._media_uri, self._playing_stream)
             
             elif self._state == STATE_PLAYING and self._media_uri and int(player_status['totlen']) <= 0 and self._snap_source == None:
-#                _LOGGER.debug("State check 4: %s, %s, %s", self.entity_id, self._media_uri, self._ice_skip_throt)
                 if self._ice_skip_throt:
                     self._update_from_icecast(no_throttle=True)
                     self._ice_skip_throt = False
