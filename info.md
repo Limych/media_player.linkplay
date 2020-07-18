@@ -1,4 +1,4 @@
-# Linkplay devices integration v2
+# Linkplay Sound Devices integration v2
 
 This component allows you to integrate control of audio devices based on Linkplay chipset into your [Home-Assistant](http://www.home-assistant.io) smart home system. Originally developed by nicjo814, maintained by limych. This version mostly rewritten by nagyrobi. Read more about Linkplay at the bottom of this file.
 
@@ -7,7 +7,8 @@ Fully compatible with [Mini Media Player card for Lovelace UI](https://github.co
 ### Warning !!!
 This **will overwrite** the previous **Linkplay Sound Devices Integration** component if you had it installed. Also the configuration settings are not backwards compatible so **you will have to adjust** them as documented below otherwise it may break your system. To avoid this, make a backup of your previous linkplay config and remove it from your Home Assistant instance. Also uninstall/delete the previous linkplay component and restart Home Assistant.
 
-[Documentation](https://github.com/nagyrobi/home-assistant-custom-components-linkplay)
+[Configuration details and documentation](https://github.com/nagyrobi/home-assistant-custom-components-linkplay)
+
 [Support forum](https://community.home-assistant.io/t/linkplay-integration/33878/133)
 
 ## Supported features:
@@ -24,7 +25,7 @@ This **will overwrite** the previous **Linkplay Sound Devices Integration** comp
 ## About Linkplay
 
 Linkplay is a smart audio chipset and module manufacturer. Their various module types share the same functionality across the whole platform and alow for native audio content playback from lots of sources, including local inputs, local files, Bluetooth, DNLA, Airplay and also web-based services like Icecast, Spotify, Tune-In, Deezer, Tidal etc. They allow setting up multiroom listening environments using either self-created wireless connections or relying on existing network infrastructure, for longer distances coverage. For more information visit https://linkplay.com/.
-There are quite a few manufacturers and devices that operate on the basis of Linkplay platform.
+There are quite a few manufacturers and devices that operate on the basis of Linkplay platform. For more information check out the [documentation](https://github.com/nagyrobi/home-assistant-custom-components-linkplay#about-linkplay)
 
 ## Component authors & contributors
     "@nicjo814",
