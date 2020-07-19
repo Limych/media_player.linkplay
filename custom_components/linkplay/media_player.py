@@ -211,6 +211,7 @@ class LinkPlayDevice(MediaPlayerEntity):
         self._snap_source = None
         self._snap_state = STATE_UNKNOWN
         self._snap_volume = 0
+        self._snap_spotify = False
 
     async def async_added_to_hass(self):
         """Record entity."""
@@ -586,6 +587,9 @@ class LinkPlayDevice(MediaPlayerEntity):
     def media_stop(self):
         """Send stop command."""
         if not self._slave_mode:
+            if self._playing_spotify:
+                self._lpapi.call('GET', 'setPlayerCmd:switchmode:wifi')
+                time.sleep(0.3)
             self._lpapi.call('GET', 'setPlayerCmd:stop')
             value = self._lpapi.data
             if value == "OK":
@@ -784,6 +788,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                 if int(preset) > 0 and int(preset) <= self._preset_key:
                     self._lpapi.call('GET', 'MCUKeyShortClick:{0}'.format(str(preset)))
                     value = self._lpapi.data
+                    self.schedule_update_ha_state(True)
                     if value != "OK":
                         _LOGGER.warning("Failed to recall preset %s. " "Device: %s, Got response: %s", self.entity_id, preset, value)
                 else:
@@ -983,15 +988,25 @@ class LinkPlayDevice(MediaPlayerEntity):
     def snapshot(self, switchinput):
         """Snapshot the current input source and the volume level of it """
         if not self._slave_mode:
-            _LOGGER.warning("Player %s snapshot source: %s", self.entity_id, self._source)
             self._snap_source = self._source
             self._snap_state = self._state
-            if switchinput and not self._playing_stream:
+            _LOGGER.warning("Player %s snapshot source: %s", self.entity_id, self._source)
+
+            if self._playing_spotify:
+                self._preset_snap_via_upnp(self._preset_key)
+                self._snap_spotify = True
+                self._snap_volume = int(self._volume)
+                self._lpapi.call('GET', 'setPlayerCmd:stop')
+                time.sleep(0.2)
+            
+            elif switchinput and not self._playing_stream:
                 _LOGGER.warning("Player %s snapshot switch to stream in.", self.entity_id)
                 self._lpapi.call('GET', 'setPlayerCmd:switchmode:wifi')
                 value = self._lpapi.data
+                time.sleep(0.2)
+                self._lpapi.call('GET', 'setPlayerCmd:stop')
                 if value == "OK":
-                    time.sleep(2)  # have to wait for the sound fade-in of the unit when physical source is changed, otherwise volume value will be incorrect
+                    time.sleep(1.8)  # have to wait for the sound fade-in of the unit when physical source is changed, otherwise volume value will be incorrect
                     player_api_result = self._get_status('getPlayerStatus', no_throttle=True)
                     if player_api_result is not None:
                         try:
@@ -1026,7 +1041,13 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._snap_volume = 0
                 time.sleep(.6)
 
-            if self._snap_source is not None:
+            if self._snap_spotify:
+                self._snap_spotify = False
+                self._lpapi.call('GET', 'MCUKeyShortClick:{0}'.format(str(self._preset_key)))
+                time.sleep(1)
+                self.schedule_update_ha_state(True)
+                                
+            elif self._snap_source is not None:
                 self.select_source(self._snap_source)
                 self._snap_source = None
 
@@ -1189,13 +1210,30 @@ class LinkPlayDevice(MediaPlayerEntity):
         if not validators.url(self._media_image_url):
             self._media_image_url = None
 
+
+
+
+    def _preset_snap_via_upnp(self, presetnum):
+        """Retrieve tracks list queue via UPNP."""
+        if self._upnp_device is None:
+            return
+
+        try:
+            result = self._upnp_device.PlayQueue.SetSpotifyPreset(KeyIndex=str(presetnum))
+        except:
+            _LOGGER.warning("SetSpotifyPreset UPNP error: %s, %s", self.entity_id)
+            return
+
+        result = str(result.get('Result'))
+
+
     def _tracklist_via_upnp(self, media):
         """Retrieve tracks list queue via UPNP."""
         if self._upnp_device is None:
             return
 
         if media == 'USB':
-            queuename = 'USBDiskQueue'
+            queuename = 'CurrentQueue'  # 'USBDiskQueue'
             rootdir = ROOTDIR_USB
         else:
             _LOGGER.warning("Tracklist retrieval: %s, %s is not supported. You can use only 'USB' for now.", self.entity_id, media_info)
@@ -1611,7 +1649,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                     self._update_from_icecast()
 
             self._new_song = self._is_playing_new_track()
-            if self._lfmapi is not None and self._new_song and self._media_title is not None and self._media_artist is not None:
+            if not self._playing_spotify and self._lfmapi is not None and self._new_song and self._media_title is not None and self._media_artist is not None:
                 self._get_lastfm_coverart()
             elif self._media_title is None or self._media_artist is None:
                 self._media_image_url = None
