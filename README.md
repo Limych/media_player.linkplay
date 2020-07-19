@@ -137,7 +137,7 @@ Currently the following state is being snapshotted/restored:
 - input source
 - webradio stream (as long as it's configured as an input source)
 - USB audio files playback (track will restart from the beginning)
-- Spotify (playback may restart the same track or not, depends on Spotify; snapshot will use the device's highest preset number to store and recall the current playlist, but this cannot be seen in the Android app).
+- Spotify (snapshot will use the device's highest preset number to store and recall the current playlist, playback may restart the same track or not, depends on Spotify settings).
 
 
 ## Browsing media files through Lovelace UI
