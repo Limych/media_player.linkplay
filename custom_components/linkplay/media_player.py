@@ -195,10 +195,11 @@ class LinkPlayDevice(MediaPlayerEntity):
         self._is_master = False
         self._wifi_channel = None
         self._ssid = None
-        self._playing_spotify = False
-        self._playing_liveinput = False
-        self._playing_stream = False
         self._playing_localfile = True
+        self._playing_stream = False
+        self._playing_liveinput = False
+        self._playing_spotify = False
+        self._playing_tidal = False
         self._slave_list = None
         self._multiroom_wifidierct = False
         self._multiroom_group = []
@@ -299,7 +300,7 @@ class LinkPlayDevice(MediaPlayerEntity):
         if self._slave_mode and self._features:
             return self._features
         
-        if self._playing_localfile or self._playing_spotify:
+        if self._playing_localfile or self._playing_spotify or self._playing_tidal:
             if self._state in [STATE_PLAYING, STATE_PAUSED]:
                 self._features = \
                 SUPPORT_SELECT_SOURCE | SUPPORT_SELECT_SOUND_MODE | SUPPORT_PLAY_MEDIA | \
@@ -313,13 +314,13 @@ class LinkPlayDevice(MediaPlayerEntity):
                 SUPPORT_STOP | SUPPORT_PLAY | SUPPORT_PAUSE | \
                 SUPPORT_NEXT_TRACK | SUPPORT_PREVIOUS_TRACK | SUPPORT_SHUFFLE_SET
             
-        if self._playing_stream:
+        elif self._playing_stream:
             self._features = \
             SUPPORT_SELECT_SOURCE | SUPPORT_SELECT_SOUND_MODE | SUPPORT_PLAY_MEDIA | \
             SUPPORT_VOLUME_SET | SUPPORT_VOLUME_MUTE | \
             SUPPORT_STOP | SUPPORT_PLAY
 
-        if self._playing_liveinput:
+        elif self._playing_liveinput:
             self._features = \
             SUPPORT_SELECT_SOURCE | SUPPORT_SELECT_SOUND_MODE | SUPPORT_PLAY_MEDIA | \
             SUPPORT_VOLUME_SET | SUPPORT_VOLUME_MUTE
@@ -788,6 +789,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                 if int(preset) > 0 and int(preset) <= self._preset_key:
                     self._lpapi.call('GET', 'MCUKeyShortClick:{0}'.format(str(preset)))
                     value = self._lpapi.data
+                    self._wait_for_mcu = 2
                     self.schedule_update_ha_state(True)
                     if value != "OK":
                         _LOGGER.warning("Failed to recall preset %s. " "Device: %s, Got response: %s", self.entity_id, preset, value)
@@ -1232,6 +1234,7 @@ class LinkPlayDevice(MediaPlayerEntity):
 
         xml_tree = ET.fromstring(preset_map)
         xml_tree.find('Key'+presetnum+'/Name').text = "Snapshot set by Home Assistant ("+result+")"
+        xml_tree.find('Key'+presetnum+'/Source').text = "SPOTIFY"
         xml_tree.find('Key'+presetnum+'/PicUrl').text = "https://brands.home-assistant.io/_/media_player/icon.png"
         preset_map = ET.tostring(xml_tree, encoding='unicode')
         
@@ -1247,7 +1250,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             return
 
         if media == 'USB':
-            queuename = 'CurrentQueue'  # 'USBDiskQueue'
+            queuename = 'USBDiskQueue'  # 'CurrentQueue'  # 'USBDiskQueue'
             rootdir = ROOTDIR_USB
         else:
             _LOGGER.warning("Tracklist retrieval: %s, %s is not supported. You can use only 'USB' for now.", self.entity_id, media_info)
@@ -1581,95 +1584,105 @@ class LinkPlayDevice(MediaPlayerEntity):
             except KeyError:
                 pass
 
-            source_t = SOURCES_MAP.get(player_status['mode'], 'Network')
-            source_n = None
-            if source_t == 'Network':
-                if self._media_uri:
-                    source_n = self._source_list.get(self._media_uri, None)
-            else:
-                source_n = self._source_list.get(source_t, None)                
-            
-            if source_n != None:
-                self._source = source_n
-            else:
-                self._source = source_t
-            
-            if self._source != 'Network' and not (self._playing_stream or self._playing_localfile):
-                if self._source == 'Idle':
-                    self._media_title = None
-                    self._state = STATE_IDLE
-                else:
-                    self._media_title = self._source
-                    self._state = STATE_PLAYING
+            if self._media_uri:
+                self._playing_tidal = bool(self._media_uri.find('audio.tidal.') != -1)
 
-                self._media_artist = None
-                self._media_album = None
-                self._media_image_url = None
-                self._icecast_name = None
+            if not self._playing_tidal:
+                source_t = SOURCES_MAP.get(player_status['mode'], 'Network')
+                source_n = None
+                if source_t == 'Network':
+                    if self._media_uri:
+                        source_n = self._source_list.get(self._media_uri, None)
+                else:
+                    source_n = self._source_list.get(source_t, None)                
                 
+                if source_n != None:
+                    self._source = source_n
+                else:
+                    self._source = source_t
+            
+                if self._source != 'Network' and not (self._playing_stream or self._playing_localfile):
+                    if self._source == 'Idle':
+                        self._media_title = None
+                        self._state = STATE_IDLE
+                    else:
+                        self._media_title = self._source
+                        self._state = STATE_PLAYING
+
+                    self._media_artist = None
+                    self._media_album = None
+                    self._media_image_url = None
+                    self._icecast_name = None
+            else:
+                self._source = 'Tidal'
+
             if player_status['mode'] in ['1', '2', '3']:
-                self._media_title = self._source
                 self._state = STATE_PLAYING
+                self._media_title = self._source
 
             if self._playing_spotify:
                 self._state = STATE_PLAYING
                 self._update_via_upnp()
 
-            elif self._playing_localfile and self._state in [STATE_PLAYING, STATE_PAUSED]:
-                try:
-                    if player_status['uri'] != "":
-                        rootdir = ROOTDIR_USB
-                        self._trackc = str(bytearray.fromhex(player_status['uri']).decode('utf-8')).replace(rootdir, '')
-                except KeyError:
-                    pass
-                if player_status['Title'] != '':
-                    status_title = str(bytearray.fromhex(player_status['Title']).decode('utf-8'))
-                    if status_title.lower() != 'unknown':
-                        self._media_title = status_title
-                        if self._trackc == None:
-                            self._trackc = status_title
-                    else:
-                        self._media_title = None
-                if player_status['Artist'] != '':
-                    status_artist = str(bytearray.fromhex(player_status['Artist']).decode('utf-8'))
-                    if status_artist.lower() != 'unknown':
-                        self._media_artist = status_artist
-                    else:
-                        self._media_artist = None
-                if player_status['Album'] != '':
-                    status_album = str(bytearray.fromhex(player_status['Album']).decode('utf-8'))
-                    if status_album.lower() != 'unknown':
-                        self._media_album = status_album
-                    else:
-                        self._media_album = None
-               
-                if self._media_title is not None and self._media_artist is None:
-                    cutext = ['mp3', 'mp2', 'm2a', 'mpg', 'wav', 'aac', 'flac', 'flc', 'm4a', 'ape', 'wma', 'ac3', 'ogg']
-                    querywords = self._media_title.split('.')
-                    resultwords  = [word for word in querywords if word.lower() not in cutext]
-                    title = ' '.join(resultwords)
-                    title.replace('_', ' ')
-                    if title.find(' - ') != -1:
-                        titles = title.split(' - ')
-                        self._media_artist = titles[0].strip().strip('-')
-                        self._media_title = titles[1].strip().strip('-')
-                    else:
-                        self._media_title = title.strip().strip('-')
-                else:
-                    self._media_title = self._source
-            
-            elif self._state == STATE_PLAYING and self._media_uri and int(player_status['totlen']) <= 0 and self._snap_source == None:
-                if self._ice_skip_throt:
-                    self._update_from_icecast(no_throttle=True)
-                    self._ice_skip_throt = False
-                else:
-                    self._update_from_icecast()
+            elif self._playing_tidal:
+                self._update_via_upnp()
 
-            self._new_song = self._is_playing_new_track()
-            if not self._playing_spotify and self._lfmapi is not None and self._new_song and self._media_title is not None and self._media_artist is not None:
-                self._get_lastfm_coverart()
-            elif self._media_title is None or self._media_artist is None:
-                self._media_image_url = None
+            else:
+                if self._playing_localfile and self._state in [STATE_PLAYING, STATE_PAUSED]:
+                    try:
+                        if player_status['uri'] != "":
+                            rootdir = ROOTDIR_USB
+                            self._trackc = str(bytearray.fromhex(player_status['uri']).decode('utf-8')).replace(rootdir, '')
+                    except KeyError:
+                        pass
+                    if player_status['Title'] != '':
+                        status_title = str(bytearray.fromhex(player_status['Title']).decode('utf-8'))
+                        if status_title.lower() != 'unknown':
+                            self._media_title = status_title
+                            if self._trackc == None:
+                                self._trackc = status_title
+                        else:
+                            self._media_title = None
+                    if player_status['Artist'] != '':
+                        status_artist = str(bytearray.fromhex(player_status['Artist']).decode('utf-8'))
+                        if status_artist.lower() != 'unknown':
+                            self._media_artist = status_artist
+                        else:
+                            self._media_artist = None
+                    if player_status['Album'] != '':
+                        status_album = str(bytearray.fromhex(player_status['Album']).decode('utf-8'))
+                        if status_album.lower() != 'unknown':
+                            self._media_album = status_album
+                        else:
+                            self._media_album = None
+                   
+                    if self._media_title is not None and self._media_artist is None:
+                        cutext = ['mp3', 'mp2', 'm2a', 'mpg', 'wav', 'aac', 'flac', 'flc', 'm4a', 'ape', 'wma', 'ac3', 'ogg']
+                        querywords = self._media_title.split('.')
+                        resultwords  = [word for word in querywords if word.lower() not in cutext]
+                        title = ' '.join(resultwords)
+                        title.replace('_', ' ')
+                        if title.find(' - ') != -1:
+                            titles = title.split(' - ')
+                            self._media_artist = titles[0].strip().strip('-')
+                            self._media_title = titles[1].strip().strip('-')
+                        else:
+                            self._media_title = title.strip().strip('-')
+                    else:
+                        self._media_title = self._source
+
+                elif self._state == STATE_PLAYING and self._media_uri and int(player_status['totlen']) <= 0 and self._snap_source == None:
+                    if self._ice_skip_throt:
+                        self._update_from_icecast(no_throttle=True)
+                        self._ice_skip_throt = False
+                    else:
+                        self._update_from_icecast()
+
+                self._new_song = self._is_playing_new_track()
+                if self._lfmapi is not None and self._new_song and self._media_title is not None and self._media_artist is not None:
+                    self._get_lastfm_coverart()
+                elif self._media_title is None or self._media_artist is None:
+                    self._media_image_url = None
 
             self._media_prev_artist = self._media_artist
             self._media_prev_title = self._media_title
@@ -1699,14 +1712,11 @@ class LinkPlayDevice(MediaPlayerEntity):
         self._multiroom_group = []
         if isinstance(slave_list, dict):
             if int(slave_list['slaves']) > 0:
-#                _LOGGER.debug("Salve list: %s", slave_list)
                 self._multiroom_group.append(self.entity_id)
                 self._is_master = True
                 for slave in slave_list['slave_list']:
-#                    _LOGGER.debug("SLAVE: %s", slave)
                     for device in self.hass.data[DOMAIN].entities:
                         if device._name == slave['name']:
-#                            _LOGGER.debug("SLAVE NAME: %s", device._name)
                             self._multiroom_group.append(device.entity_id)
                             device.set_master(self)
                             device.set_is_master(False)
@@ -1749,7 +1759,6 @@ class LinkPlayRestData:
         self._request = None
         resource = "http://{0}/httpapi.asp?command={1}".format(self._host, cmd)
         self._request = requests.Request(method, resource).prepare()
-
 #        _LOGGER.debug("Updating LinkPlayRestData from %s", self._request.url)
         try:
             with requests.Session() as sess:
