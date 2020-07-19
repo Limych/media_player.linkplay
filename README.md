@@ -132,7 +132,13 @@ To restore the player state:
       data:
         entity_id: media_player.sound_room1
 ```
-Currently only the input source selection and the volume is being snapshotted/restored.
+Currently the following state is being snapshotted/restored:
+- volume
+- input source
+- webradio stream (as long as it's configured as an input source)
+- USB audio files playback (track will restart from the beginning)
+- Spotify (playback may restart the same track or not, depends on Spotify; snapshot will use the device's highest preset number to store and recall the current playlist, but this cannot be seen in the Android app).
+
 
 ## Browsing media files through Lovelace UI
 
