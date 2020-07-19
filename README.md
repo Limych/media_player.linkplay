@@ -133,9 +133,9 @@ To restore the player state:
         entity_id: media_player.sound_room1
 ```
 Currently the following state is being snapshotted/restored:
-- volume
-- input source
-- webradio stream (as long as it's configured as an input source)
+- Volume
+- Input source
+- Webradio stream (as long as it's configured as an input source)
 - USB audio files playback (track will restart from the beginning)
 - Spotify (snapshot will use the device's highest preset number to store and recall the current playlist, playback may restart the same track or not, depends on Spotify settings).
 
@@ -260,12 +260,12 @@ Linkplay devices support some commands through the API, this is a wrapper to be 
         command: Reboot
 ```
 Implemented commands:
-- `Reboot` - as name implies
 - `Rescan` - do not wait for the current 60 second throttle cycle to reconnect to the unavailable devices, trigger testing for availability immediately
 - `PromptEnable` and `PromptDisable` - enable or disable the audio prompts played through the speakers when connecting to the network or joining multiroom etc.
 - `SetRandomWifiKey`- just as an extra security feature, one could make an automation to change the keys on the linkplay APs to some random values periodically.
 - `WriteDeviceNameToUnit: My Device Name` - change the friendly name of the device both in firmware and in Home Assistant.
 - `TimeSync` - is for units on networks not connected to internet to compensate for an unreachable NTP server. Correct time is needed for the alarm clock functionality (not implemented yet here)
+- `Reboot` - as name implies (a soft-reboot, only seems to restart the main loop in the Linkplay module, not MCU or other part).
 - `RouterMultiroomEnable` - theoretically router mode is enabled by default in firmwares above v4.2.8020, but there’s also a logic included to build it up, this command ensures to set the good priority. Only use if you have issues with multiroom in router mode.
 
 Results will appear in Lovelace UI's left pane as persistent notifications which can be dismissed.
