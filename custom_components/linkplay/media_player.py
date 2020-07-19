@@ -993,7 +993,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             _LOGGER.warning("Player %s snapshot source: %s", self.entity_id, self._source)
 
             if self._playing_spotify:
-                self._preset_snap_via_upnp(self._preset_key)
+                self._preset_snap_via_upnp(str(self._preset_key))
                 self._snap_spotify = True
                 self._snap_volume = int(self._volume)
                 self._lpapi.call('GET', 'setPlayerCmd:stop')
@@ -1210,22 +1210,36 @@ class LinkPlayDevice(MediaPlayerEntity):
         if not validators.url(self._media_image_url):
             self._media_image_url = None
 
-
-
-
     def _preset_snap_via_upnp(self, presetnum):
         """Retrieve tracks list queue via UPNP."""
-        if self._upnp_device is None:
+        if self._upnp_device is None and not self._playing_spotify:
             return
 
         try:
-            result = self._upnp_device.PlayQueue.SetSpotifyPreset(KeyIndex=str(presetnum))
+            result = self._upnp_device.PlayQueue.SetSpotifyPreset(KeyIndex=presetnum)
         except:
-            _LOGGER.warning("SetSpotifyPreset UPNP error: %s, %s", self.entity_id)
+            _LOGGER.warning("SetSpotifyPreset UPNP error: %s, %s", self.entity_id, presetnum)
             return
 
         result = str(result.get('Result'))
 
+        try:
+            preset_map = self._upnp_device.PlayQueue.GetKeyMapping()
+            preset_map = preset_map.get('QueueContext')
+        except:
+            _LOGGER.warning("GetKeyMapping UPNP error: %s, %s", self.entity_id)
+            return
+
+        xml_tree = ET.fromstring(preset_map)
+        xml_tree.find('Key'+presetnum+'/Name').text = "Snapshot set by Home Assistant ("+result+")"
+        xml_tree.find('Key'+presetnum+'/PicUrl').text = "https://brands.home-assistant.io/_/media_player/icon.png"
+        preset_map = ET.tostring(xml_tree, encoding='unicode')
+        
+        try:
+            setmap = self._upnp_device.PlayQueue.SetKeyMapping(QueueContext=preset_map)
+        except:
+            _LOGGER.warning("SetKeyMapping UPNP error: %s, %s", self.entity_id, preset_map)
+            return
 
     def _tracklist_via_upnp(self, media):
         """Retrieve tracks list queue via UPNP."""
@@ -1246,6 +1260,9 @@ class LinkPlayDevice(MediaPlayerEntity):
             return
 
         media_info = media_info.get('QueueContext')
+        if media_info is None:
+            return
+
         xml_tree = ET.fromstring(media_info)
 
         trackq = []
