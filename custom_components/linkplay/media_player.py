@@ -36,6 +36,8 @@ _LOGGER = logging.getLogger(__name__)
 ATTR_SLAVE = 'slave'
 ATTR_LINKPLAY_GROUP = 'linkplay_group'
 ATTR_FWVER = 'firmware'
+ATTR_TRCNT = 'track_count'
+ATTR_TRCRT = 'track_current'
 
 PARALLEL_UPDATES = 0
 
@@ -166,6 +168,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._source_list = loads(dumps(sources).strip('[]'))
         else:
             self._source_list = SOURCES.copy()
+        self._uri_from_ha = False
         self._sound_mode = None
         self._muted = False
         self._playhead_position = 0
@@ -426,10 +429,10 @@ class LinkPlayDevice(MediaPlayerEntity):
         attributes[ATTR_FWVER] = self._fw_ver
         attributes[ATTR_DEVICE_CLASS] = DEVICE_CLASS_SPEAKER
         if len(self._trackq) > 0:
-            attributes['track_count'] = len(self._trackq) - 1
+            attributes[ATTR_TRCNT] = len(self._trackq) - 1
         else:
-            attributes['track_count'] = 0
-        attributes['track_current'] = self._trackc
+            attributes[ATTR_TRCNT] = 0
+        attributes[ATTR_TRCRT] = self._trackc
         return attributes
 
     @property
@@ -594,6 +597,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._lpapi.call('GET', 'setPlayerCmd:stop')
             value = self._lpapi.data
             if value == "OK":
+                self._uri_from_ha = False
                 self._state = STATE_IDLE
                 self._playhead_position = 0
                 self._duration = 0
@@ -676,6 +680,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                 _LOGGER.warning("Failed to play media. Device: %s, Got response: %s", self.entity_id, value)
                 return False
             else:
+                self._uri_from_ha = True
                 self._state = STATE_PLAYING
                 self._media_title = None
                 self._media_artist = None
@@ -712,6 +717,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                         self._wait_for_mcu = 2  # switching from live to stream input -> time to report correct volume value at update
                     else:
                         self._wait_for_mcu = 0.2
+                    self._uri_from_ha = True
                     self._source = source
                     self._media_uri = temp_source
                     self._state = STATE_PLAYING
@@ -739,6 +745,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                     else:
                         self._wait_for_mcu = 0.6  # switching to a physical input -> time to report correct volume value at update
                     self._source = source
+                    self._uri_from_ha = False
                     self._media_uri = None
                     self._state = STATE_PLAYING
                     self._playhead_position = 0
@@ -1175,22 +1182,27 @@ class LinkPlayDevice(MediaPlayerEntity):
         self._lpapi.call('GET', status)
         return self._lpapi.data
 
-    def _update_via_upnp(self):
+    def _update_via_upnp(self, radio):
         """Update track info via UPNP."""
         import validators
-        self._media_title = None
-        self._media_album = None
-        self._media_artist = None
-        self._media_image_url = None
 
         if self._upnp_device is None:
             return
 
-        media_info = self._upnp_device.AVTransport.GetMediaInfo(InstanceID=0)
-        media_info = media_info.get('CurrentURIMetaData')
+        try:
+            media_info = self._upnp_device.AVTransport.GetMediaInfo(InstanceID=0)
+            media_info = media_info.get('CurrentURIMetaData')
+        except:
+            _LOGGER.warning("GetMediaInfo UPNP error: %s", self.entity_id)
+            return
 
         if media_info is None:
             return
+
+        self._media_title = None
+        self._media_album = None
+        self._media_artist = None
+        self._media_image_url = None
 
         xml_tree = ET.fromstring(media_info)
 
@@ -1199,15 +1211,22 @@ class LinkPlayDevice(MediaPlayerEntity):
         artist_xml_path = "{urn:schemas-upnp-org:metadata-1-0/upnp/}artist"
         album_xml_path = "{urn:schemas-upnp-org:metadata-1-0/upnp/}album"
         image_xml_path = "{urn:schemas-upnp-org:metadata-1-0/upnp/}albumArtURI"
+        radiosub_xml_path = "{http://purl.org/dc/elements/1.1/}subtitle"
 
-        self._media_title = \
-            xml_tree.find("{0}{1}".format(xml_path, title_xml_path)).text
-        self._media_artist = \
-            xml_tree.find("{0}{1}".format(xml_path, artist_xml_path)).text
-        self._media_album = \
-            xml_tree.find("{0}{1}".format(xml_path, album_xml_path)).text
-        self._media_image_url = \
-            xml_tree.find("{0}{1}".format(xml_path, image_xml_path)).text
+        if radio:
+            title = xml_tree.find("{0}{1}".format(xml_path, radiosub_xml_path)).text
+            if title.find(' - ') != -1:
+                titles = title.split(' - ')
+                self._media_artist = titles[0].strip()
+                self._media_title = titles[1].strip()
+            else:
+                self._media_title = title.strip()
+        else:
+            self._media_title = xml_tree.find("{0}{1}".format(xml_path, title_xml_path)).text
+            self._media_artist = xml_tree.find("{0}{1}".format(xml_path, artist_xml_path)).text
+            self._media_album = xml_tree.find("{0}{1}".format(xml_path, album_xml_path)).text
+ 
+        self._media_image_url = xml_tree.find("{0}{1}".format(xml_path, image_xml_path)).text
 
         if not validators.url(self._media_image_url):
             self._media_image_url = None
@@ -1229,7 +1248,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             preset_map = self._upnp_device.PlayQueue.GetKeyMapping()
             preset_map = preset_map.get('QueueContext')
         except:
-            _LOGGER.warning("GetKeyMapping UPNP error: %s, %s", self.entity_id)
+            _LOGGER.warning("GetKeyMapping UPNP error: %s", self.entity_id)
             return
 
         xml_tree = ET.fromstring(preset_map)
@@ -1426,14 +1445,47 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._media_artist = None
             self._media_image_url = None
 
+    def _get_playerstatus_metadata(self, plr_stat):
+        try:
+            if plr_stat['uri'] != "":
+                rootdir = ROOTDIR_USB
+                self._trackc = str(bytearray.fromhex(plr_stat['uri']).decode('utf-8')).replace(rootdir, '')
+        except KeyError:
+            pass
+        if plr_stat['Title'] != '':
+            title = str(bytearray.fromhex(plr_stat['Title']).decode('utf-8'))
+            if title.lower() != 'unknown':
+                self._media_title = title
+                if self._trackc == None:
+                    self._trackc = title
+            else:
+                self._media_title = None
+        if plr_stat['Artist'] != '':
+            artist = str(bytearray.fromhex(plr_stat['Artist']).decode('utf-8'))
+            if artist.lower() != 'unknown':
+                self._media_artist = artist
+            else:
+                self._media_artist = None
+        if plr_stat['Album'] != '':
+            album = str(bytearray.fromhex(plr_stat['Album']).decode('utf-8'))
+            if album.lower() != 'unknown':
+                self._media_album = album
+            else:
+                self._media_album = None
+  
     def _get_lastfm_coverart(self):
         """Get cover art from last.fm."""
+        if self._media_title is None or self._media_artist is None:
+            self._media_image_url = None
+            return
+            
         self._lfmapi.call('GET', 'track.getInfo', "artist={0}&track={1}".format(self._media_artist, self._media_title))
         lfmdata = json.loads(self._lfmapi.data)
         try:
             self._media_image_url = lfmdata['track']['album']['image'][3]['#text']
         except (ValueError, KeyError):
             self._media_image_url = None
+
         if self._media_image_url == '':
             self._media_image_url = None
 
@@ -1592,7 +1644,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                 source_n = None
                 if source_t == 'Network':
                     if self._media_uri:
-                        source_n = self._source_list.get(self._media_uri, None)
+                        source_n = self._source_list.get(self._media_uri, 'Network')
                 else:
                     source_n = self._source_list.get(source_t, None)                
                 
@@ -1622,40 +1674,15 @@ class LinkPlayDevice(MediaPlayerEntity):
 
             if self._playing_spotify:
                 self._state = STATE_PLAYING
-                self._update_via_upnp()
+                self._update_via_upnp(False)
 
             elif self._playing_tidal:
-                self._update_via_upnp()
+                self._update_via_upnp(False)
 
             else:
                 if self._playing_localfile and self._state in [STATE_PLAYING, STATE_PAUSED]:
-                    try:
-                        if player_status['uri'] != "":
-                            rootdir = ROOTDIR_USB
-                            self._trackc = str(bytearray.fromhex(player_status['uri']).decode('utf-8')).replace(rootdir, '')
-                    except KeyError:
-                        pass
-                    if player_status['Title'] != '':
-                        status_title = str(bytearray.fromhex(player_status['Title']).decode('utf-8'))
-                        if status_title.lower() != 'unknown':
-                            self._media_title = status_title
-                            if self._trackc == None:
-                                self._trackc = status_title
-                        else:
-                            self._media_title = None
-                    if player_status['Artist'] != '':
-                        status_artist = str(bytearray.fromhex(player_status['Artist']).decode('utf-8'))
-                        if status_artist.lower() != 'unknown':
-                            self._media_artist = status_artist
-                        else:
-                            self._media_artist = None
-                    if player_status['Album'] != '':
-                        status_album = str(bytearray.fromhex(player_status['Album']).decode('utf-8'))
-                        if status_album.lower() != 'unknown':
-                            self._media_album = status_album
-                        else:
-                            self._media_album = None
-                   
+                    self._get_playerstatus_metadata(player_status)
+                    
                     if self._media_title is not None and self._media_artist is None:
                         cutext = ['mp3', 'mp2', 'm2a', 'mpg', 'wav', 'aac', 'flac', 'flc', 'm4a', 'ape', 'wma', 'ac3', 'ogg']
                         querywords = self._media_title.split('.')
@@ -1672,17 +1699,18 @@ class LinkPlayDevice(MediaPlayerEntity):
                         self._media_title = self._source
 
                 elif self._state == STATE_PLAYING and self._media_uri and int(player_status['totlen']) <= 0 and self._snap_source == None:
-                    if self._ice_skip_throt:
-                        self._update_from_icecast(no_throttle=True)
-                        self._ice_skip_throt = False
+                    if self._uri_from_ha:
+                        if self._ice_skip_throt:
+                            self._update_from_icecast(no_throttle=True)
+                            self._ice_skip_throt = False
+                        else:
+                            self._update_from_icecast()
                     else:
-                        self._update_from_icecast()
+                        self._update_via_upnp(True)
 
                 self._new_song = self._is_playing_new_track()
-                if self._lfmapi is not None and self._new_song and self._media_title is not None and self._media_artist is not None:
+                if (self._uri_from_ha or self._playing_localfile) and self._lfmapi is not None and self._new_song:
                     self._get_lastfm_coverart()
-                elif self._media_title is None or self._media_artist is None:
-                    self._media_image_url = None
 
             self._media_prev_artist = self._media_artist
             self._media_prev_title = self._media_title
