@@ -30,7 +30,7 @@ ATTR_SOURCE = 'source'
 ATTR_TRACK = 'track'
 
 SERVICE_SCHEMA = vol.Schema({
-    vol.Optional(ATTR_ENTITY_ID): cv.entity_ids
+    vol.Optional(ATTR_ENTITY_ID): cv.comp_entity_ids
 })
 
 JOIN_SERVICE_SCHEMA = SERVICE_SCHEMA.extend({
@@ -38,21 +38,21 @@ JOIN_SERVICE_SCHEMA = SERVICE_SCHEMA.extend({
 })
 
 PRESET_BUTTON_SCHEMA = vol.Schema({
-    vol.Required(ATTR_ENTITY_ID): cv.entity_id,
+    vol.Required(ATTR_ENTITY_ID): cv.comp_entity_ids,
     vol.Required(ATTR_PRESET): cv.positive_int
 })
 
 CMND_SERVICE_SCHEMA = vol.Schema({
-    vol.Required(ATTR_ENTITY_ID): cv.entity_id,
+    vol.Required(ATTR_ENTITY_ID): cv.comp_entity_ids,
     vol.Required(ATTR_CMD): cv.string
 })
 
 REST_SERVICE_SCHEMA = vol.Schema({
-    vol.Required(ATTR_ENTITY_ID): cv.entity_id
+    vol.Required(ATTR_ENTITY_ID): cv.comp_entity_ids
 })
 
 SNAP_SERVICE_SCHEMA = vol.Schema({
-    vol.Required(ATTR_ENTITY_ID): cv.entity_id,
+    vol.Required(ATTR_ENTITY_ID): cv.comp_entity_ids,
     vol.Optional(ATTR_SNAP, default=True): cv.boolean
 })
 
@@ -75,11 +75,13 @@ def setup(hass, config):
     def service_handle(service):
         """Handle services."""
         _LOGGER.debug("service_handle from id: %s",
-                      service.data.get('entity_id'))
-        entity_ids = service.data.get('entity_id')
+                      service.data.get(ATTR_ENTITY_ID))
+        entity_ids = service.data.get(ATTR_ENTITY_ID)
         entities = hass.data[DOMAIN].entities
 
         if entity_ids:
+            if entity_ids == 'all':
+                entity_ids = [e.entity_id for e in entities]
             entities = [e for e in entities if e.entity_id in entity_ids]
 
         if service.service == SERVICE_JOIN:
@@ -107,27 +109,27 @@ def setup(hass, config):
         elif service.service == SERVICE_PRESET:
             preset = service.data.get(ATTR_PRESET)
             for device in entities:
-                if device.entity_id == service.data.get(ATTR_ENTITY_ID):
+                if device.entity_id in entity_ids:
                     _LOGGER.debug("**PRESET** entity: %s; preset: %s", device.entity_id, preset)
                     device.preset_button(preset)
 
         elif service.service == SERVICE_CMD:
             command = service.data.get(ATTR_CMD)
             for device in entities:
-                if device.entity_id == service.data.get(ATTR_ENTITY_ID):
+                if device.entity_id in entity_ids:
                     _LOGGER.debug("**COMMAND** entity: %s; command: %s", device.entity_id, command)
                     device.execute_command(command)
 
         elif service.service == SERVICE_SNAP:
             switchinput = service.data.get(ATTR_SNAP)
             for device in entities:
-                if device.entity_id == service.data.get(ATTR_ENTITY_ID):
+                if device.entity_id in entity_ids:
                     _LOGGER.debug("**SNAPSHOT** entity: %s;", device.entity_id)
                     device.snapshot(switchinput)
 
         elif service.service == SERVICE_REST:
             for device in entities:
-                if device.entity_id == service.data.get(ATTR_ENTITY_ID):
+                if device.entity_id in entity_ids:
                     _LOGGER.debug("**RESTORE** entity: %s;", device.entity_id)
                     device.restore()
 
@@ -135,14 +137,14 @@ def setup(hass, config):
             in_slct = service.data.get(ATTR_SELECT)
             trk_src = service.data.get(ATTR_SOURCE)
             for device in entities:
-                if device.entity_id == service.data.get(ATTR_ENTITY_ID):
+                if device.entity_id in entity_ids:
                     _LOGGER.debug("**GET TRACKS** entity: %s; source: %s; to: %s", device.entity_id, trk_src, in_slct)
                     device.fill_input_select(in_slct, trk_src)
 
         elif service.service == SERVICE_PLAY:
             track = service.data.get(ATTR_TRACK)
             for device in entities:
-                if device.entity_id == service.data.get(ATTR_ENTITY_ID):
+                if device.entity_id in entity_ids:
                     _LOGGER.debug("**PLAY TRACK** entity: %s; track: %s", device.entity_id, track)
                     device.play_track(track)
 
