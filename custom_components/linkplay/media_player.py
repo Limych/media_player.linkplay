@@ -996,7 +996,6 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._snapshot_active = True
             self._snap_source = self._source
             self._snap_state = self._state
-            _LOGGER.warning("Player %s snapshot source: %s", self.entity_id, self._source)
 
             if self._playing_spotify:
                 self._preset_snap_via_upnp(str(self._preset_key))
@@ -1005,8 +1004,10 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._lpapi.call('GET', 'setPlayerCmd:stop')
                 time.sleep(0.2)
             
+            elif self._state == STATE_IDLE:
+                self._snap_volume = int(self._volume)
+                
             elif switchinput and not self._playing_stream:
-                _LOGGER.warning("Player %s snapshot switch to stream in.", self.entity_id)
                 self._lpapi.call('GET', 'setPlayerCmd:switchmode:wifi')
                 value = self._lpapi.data
                 time.sleep(0.2)
@@ -1023,11 +1024,9 @@ class LinkPlayDevice(MediaPlayerEntity):
                             self._snap_volume = 0
                     else:
                         self._snap_volume = 0
-                    _LOGGER.warning("Player %s snapshot volume of the stream input: %s", self.entity_id, self._snap_volume)
                 else:
                     self._snap_volume = 0
             else:
-                _LOGGER.warning("Player %s snapshot stream volume: %s", self.entity_id, self._volume)
                 self._snap_volume = int(self._volume)
                 self._lpapi.call('GET', 'setPlayerCmd:stop')
         else:
@@ -1058,7 +1057,6 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._snapshot_active = False
                 self.select_source(self._snap_source)
                 self._snap_source = None
-
         else:
             self._master.restore()
                             
@@ -1732,7 +1730,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                         self._update_from_icecast()
 
                 self._new_song = self._is_playing_new_track()
-                if self._playing_localfile and self._lfmapi is not None and self._new_song:
+                if self._lfmapi is not None and self._new_song:
                     self._get_lastfm_coverart()
 
             self._media_prev_artist = self._media_artist
