@@ -1272,9 +1272,28 @@ class LinkPlayDevice(MediaPlayerEntity):
             return
 
         xml_tree = ET.fromstring(preset_map)
-        xml_tree.find('Key'+presetnum+'/Name').text = "Snapshot set by Home Assistant ("+result+")"
-        xml_tree.find('Key'+presetnum+'/Source').text = "SPOTIFY"
-        xml_tree.find('Key'+presetnum+'/PicUrl').text = "https://brands.home-assistant.io/_/media_player/icon.png"
+
+        try:
+            xml_tree.find('Key'+presetnum+'/Name').text = "Snapshot set by Home Assistant ("+result+")"
+        except:
+            data=xml_tree.find('Key'+presetnum)
+            snap=ET.SubElement(data,'Name')
+            snap.text = "Snapshot set by Home Assistant ("+result+")"
+
+        try:
+            xml_tree.find('Key'+presetnum+'/Source').text = "SPOTIFY"
+        except:
+            data=xml_tree.find('Key'+presetnum)
+            snap=ET.SubElement(data,'Source')
+            snap.text = "SPOTIFY"
+
+        try:
+            xml_tree.find('Key'+presetnum+'/PicUrl').text = "https://brands.home-assistant.io/_/media_player/icon.png"
+        except:
+            data=xml_tree.find('Key'+presetnum)
+            snap=ET.SubElement(data,'PicUrl')
+            snap.text = "https://brands.home-assistant.io/_/media_player/icon.png"
+
         preset_map = ET.tostring(xml_tree, encoding='unicode')
         
         try:
