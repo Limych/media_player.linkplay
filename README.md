@@ -116,7 +116,7 @@ Linkplay devices allow to save, using the control app on the phone/tablet, music
         entity_id: media_player.sound_room1
         preset: 1
 ```
-Preset count vary from device tyoe to type, usually the app shows how many presets can be stored maximum. The integration detects the max number and the command only accepts numbers from the allowed range.
+Preset count vary from device tyoe to type, usually the app shows how many presets can be stored maximum. The integration detects the max number and the command only accepts numbers from the allowed range. You can specify multiple entity ids separated by comma or use `all` to run the service against.
 
 ## Snapshot and restore
 
@@ -132,7 +132,7 @@ To restore the player state:
       data:
         entity_id: media_player.sound_room1
 ```
-Currently the following state is being snapshotted/restored:
+You can specify multiple entity ids separated by comma or use `all` to run the service against. Currently the following state is being snapshotted/restored:
 - Volume
 - Input source
 - Webradio stream (as long as it's configured as an input source)
@@ -268,7 +268,7 @@ Implemented commands:
 - `Reboot` - as name implies (a soft-reboot, only seems to restart the main loop in the Linkplay module, not MCU or other part).
 - `RouterMultiroomEnable` - theoretically router mode is enabled by default in firmwares above v4.2.8020, but there’s also a logic included to build it up, this command ensures to set the good priority. Only use if you have issues with multiroom in router mode.
 
-Results will appear in Lovelace UI's left pane as persistent notifications which can be dismissed.
+Results will appear in Lovelace UI's left pane as persistent notifications which can be dismissed. You can specify multiple entity ids separated by comma or use `all` to run the service against.
 
 
 ## About Linkplay
