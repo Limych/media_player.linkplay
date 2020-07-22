@@ -168,7 +168,6 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._source_list = loads(dumps(sources).strip('[]'))
         else:
             self._source_list = SOURCES.copy()
-        self._uri_from_ha = False
         self._sound_mode = None
         self._muted = False
         self._playhead_position = 0
@@ -212,6 +211,7 @@ class LinkPlayDevice(MediaPlayerEntity):
         self._icecast_name = None
         self._icecast_meta = icecast_meta
         self._ice_skip_throt = False
+        self._snapshot_active = False
         self._snap_source = None
         self._snap_state = STATE_UNKNOWN
         self._snap_volume = 0
@@ -597,7 +597,6 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._lpapi.call('GET', 'setPlayerCmd:stop')
             value = self._lpapi.data
             if value == "OK":
-                self._uri_from_ha = False
                 self._state = STATE_IDLE
                 self._playhead_position = 0
                 self._duration = 0
@@ -680,7 +679,6 @@ class LinkPlayDevice(MediaPlayerEntity):
                 _LOGGER.warning("Failed to play media. Device: %s, Got response: %s", self.entity_id, value)
                 return False
             else:
-                self._uri_from_ha = True
                 self._state = STATE_PLAYING
                 self._media_title = None
                 self._media_artist = None
@@ -717,7 +715,6 @@ class LinkPlayDevice(MediaPlayerEntity):
                         self._wait_for_mcu = 2  # switching from live to stream input -> time to report correct volume value at update
                     else:
                         self._wait_for_mcu = 0.2
-                    self._uri_from_ha = True
                     self._source = source
                     self._media_uri = temp_source
                     self._state = STATE_PLAYING
@@ -745,7 +742,6 @@ class LinkPlayDevice(MediaPlayerEntity):
                     else:
                         self._wait_for_mcu = 0.6  # switching to a physical input -> time to report correct volume value at update
                     self._source = source
-                    self._uri_from_ha = False
                     self._media_uri = None
                     self._state = STATE_PLAYING
                     self._playhead_position = 0
@@ -997,6 +993,7 @@ class LinkPlayDevice(MediaPlayerEntity):
     def snapshot(self, switchinput):
         """Snapshot the current input source and the volume level of it """
         if not self._slave_mode:
+            self._snapshot_active = True
             self._snap_source = self._source
             self._snap_state = self._state
             _LOGGER.warning("Player %s snapshot source: %s", self.entity_id, self._source)
@@ -1054,9 +1051,11 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._snap_spotify = False
                 self._lpapi.call('GET', 'MCUKeyShortClick:{0}'.format(str(self._preset_key)))
                 time.sleep(1)
+                self._snapshot_active = False
                 self.schedule_update_ha_state(True)
                                 
             elif self._snap_source is not None:
+                self._snapshot_active = False
                 self.select_source(self._snap_source)
                 self._snap_source = None
 
@@ -1180,11 +1179,32 @@ class LinkPlayDevice(MediaPlayerEntity):
     def _get_status(self, status):
         #_LOGGER.debug('getting status for %s', self._name)
         self._lpapi.call('GET', status)
+        if self._lpapi.data is None:
+            _LOGGER.warning('Unable to connect to device: %s, %s', self.entity_id, self._name)
+            self._unav_throttle = True
+            self._wait_for_mcu = 0
+            self._state = STATE_UNAVAILABLE
+            self._playhead_position = None
+            self._duration = None
+            self._position_updated_at = None
+            self._media_title = None
+            self._media_artist = None
+            self._media_album = None
+            self._media_image_url = None
+            self._media_uri = None
+            self._icecast_name = None
+            self._source = None
+            self._upnp_device = None
+            self._first_update = True
+            self._slave_mode = False
+            self._is_master = False
+
         return self._lpapi.data
 
-    def _update_via_upnp(self, radio):
+    def _update_via_upnp(self):
         """Update track info via UPNP."""
         import validators
+        radio = False
 
         if self._upnp_device is None:
             return
@@ -1505,7 +1525,7 @@ class LinkPlayDevice(MediaPlayerEntity):
     
     def update(self):
         """Get the latest player details from the device."""
-        if self._slave_mode:
+        if self._slave_mode or self._snapshot_active:
             return True
             
         if self._wait_for_mcu > 0:  # have wait for the unit to finish processing command, otherwise some reported status values will be incorrect
@@ -1518,26 +1538,13 @@ class LinkPlayDevice(MediaPlayerEntity):
             player_api_result = self._get_status('getPlayerStatus', no_throttle=True)
 
         if player_api_result is None:
-            _LOGGER.warning('Unable to connect to device: %s, %s', self.entity_id, self._name)
-            self._unav_throttle = True
-            self._state = STATE_UNAVAILABLE
-            self._playhead_position = None
-            self._duration = None
-            self._position_updated_at = None
-            self._media_title = None
-            self._media_artist = None
-            self._media_album = None
-            self._media_image_url = None
-            self._media_uri = None
-            self._icecast_name = None
-            self._source = None
-            self._upnp_device = None
             return
 
         try:
             player_status = json.loads(player_api_result)
         except ValueError:
             _LOGGER.warning("REST result could not be parsed as JSON: %s, %s", self.entity_id, self._name)
+            return
 
         if isinstance(player_status, dict):
             self._unav_throttle = False
@@ -1674,10 +1681,10 @@ class LinkPlayDevice(MediaPlayerEntity):
 
             if self._playing_spotify:
                 self._state = STATE_PLAYING
-                self._update_via_upnp(False)
+                self._update_via_upnp()
 
             elif self._playing_tidal:
-                self._update_via_upnp(False)
+                self._update_via_upnp()
 
             else:
                 if self._playing_localfile and self._state in [STATE_PLAYING, STATE_PAUSED]:
@@ -1698,18 +1705,15 @@ class LinkPlayDevice(MediaPlayerEntity):
                     else:
                         self._media_title = self._source
 
-                elif self._state == STATE_PLAYING and self._media_uri and int(player_status['totlen']) <= 0 and self._snap_source == None:
-                    if self._uri_from_ha:
-                        if self._ice_skip_throt:
-                            self._update_from_icecast(no_throttle=True)
-                            self._ice_skip_throt = False
-                        else:
-                            self._update_from_icecast()
+                elif self._state == STATE_PLAYING and self._media_uri and int(player_status['totlen']) <= 0 and not self._snapshot_active:
+                    if self._ice_skip_throt:
+                        self._update_from_icecast(no_throttle=True)
+                        self._ice_skip_throt = False
                     else:
-                        self._update_via_upnp(True)
+                        self._update_from_icecast()
 
                 self._new_song = self._is_playing_new_track()
-                if (self._uri_from_ha or self._playing_localfile) and self._lfmapi is not None and self._new_song:
+                if self._playing_localfile and self._lfmapi is not None and self._new_song:
                     self._get_lastfm_coverart()
 
             self._media_prev_artist = self._media_artist
