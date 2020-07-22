@@ -60,7 +60,7 @@ FW_MROOM_RTR_MIN = '4.2.8020'
 UPNP_TIMEOUT = 2
 TCPPORT = 8899
 ICE_THROTTLE = timedelta(seconds=60)
-UNA_THROTTLE = timedelta(seconds=60)
+UNA_THROTTLE = timedelta(seconds=120)
 ROOTDIR_USB = '/media/sda1/'
 
 DEFAULT_ICECAST_UPDATE = 'StationName'
@@ -488,6 +488,8 @@ class LinkPlayDevice(MediaPlayerEntity):
             else:
                 _LOGGER.warning("Failed to set volume. Device: %s, Got response: %s", self.entity_id, value)
         else:
+            if self._snapshot_active:
+                return
             self._master.lpapi.call('GET', 'multiroom:SlaveVolume:{0}:{1}'.format(self._slave_ip, str(volume)))
             value = self._master.lpapi.data
             if value == "OK":
@@ -694,7 +696,8 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._unav_throttle = False
                 return True
         else:
-            self._master.play_media(media_type, media_id)
+            if not self._snapshot_active:
+                self._master.play_media(media_type, media_id)
 
     def select_source(self, source):
         """Select input source."""
@@ -1030,7 +1033,8 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._snap_volume = int(self._volume)
                 self._lpapi.call('GET', 'setPlayerCmd:stop')
         else:
-            self._master.snapshot(switchinput)
+            return
+            #self._master.snapshot(switchinput)
 
 
     def restore(self):
@@ -1058,7 +1062,8 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self.select_source(self._snap_source)
                 self._snap_source = None
         else:
-            self._master.restore()
+            return
+            #self._master.restore()
                             
     def set_multiroom_group(self, multiroom_group):
         """Set multiroom group info."""
