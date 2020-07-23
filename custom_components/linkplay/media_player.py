@@ -201,7 +201,7 @@ class LinkPlayDevice(MediaPlayerEntity):
         self._playing_stream = False
         self._playing_liveinput = False
         self._playing_spotify = False
-        self._playing_tidal = False
+        self._playing_webplaylist = False
         self._slave_list = None
         self._multiroom_wifidierct = False
         self._multiroom_group = []
@@ -303,7 +303,7 @@ class LinkPlayDevice(MediaPlayerEntity):
         if self._slave_mode and self._features:
             return self._features
         
-        if self._playing_localfile or self._playing_spotify or self._playing_tidal:
+        if self._playing_localfile or self._playing_spotify or self._playing_webplaylist:
             if self._state in [STATE_PLAYING, STATE_PAUSED]:
                 self._features = \
                 SUPPORT_SELECT_SOURCE | SUPPORT_SELECT_SOUND_MODE | SUPPORT_PLAY_MEDIA | \
@@ -1514,7 +1514,12 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._media_album = album
             else:
                 self._media_album = None
-  
+
+        if self._media_title != None and self._media_artist != None:
+            return True
+        else:
+            return False
+
     def _get_lastfm_coverart(self):
         """Get cover art from last.fm."""
         if self._media_title is None or self._media_artist is None:
@@ -1666,9 +1671,14 @@ class LinkPlayDevice(MediaPlayerEntity):
                 pass
 
             if self._media_uri:
-                self._playing_tidal = bool(self._media_uri.find('audio.tidal.') != -1)
+                # Detect web music service by their CDN subdomains in the URL
+                # Tidal, Deezer
+                self._playing_webplaylist = \
+                    bool(self._media_uri.find('audio.tidal.') != -1) or \
+                    bool(self._media_uri.find('.dzcdn.') != -1) or \
+                    bool(self._media_uri.find('.deezer.') != -1)
 
-            if not self._playing_tidal:
+            if not self._playing_webplaylist:
                 source_t = SOURCES_MAP.get(player_status['mode'], 'Network')
                 source_n = None
                 if source_t == 'Network':
@@ -1682,7 +1692,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                 else:
                     self._source = source_t
             else:
-                self._source = 'Tidal'
+                self._source = 'Web playlist'
 
             if self._source != 'Network' and not (self._playing_stream or self._playing_localfile):
                 if self._source == 'Idle':
@@ -1705,7 +1715,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._state = STATE_PLAYING
                 self._update_via_upnp()
 
-            elif self._playing_tidal:
+            elif self._playing_webplaylist:
                 self._update_via_upnp()
 
             else:
@@ -1726,6 +1736,9 @@ class LinkPlayDevice(MediaPlayerEntity):
                             self._media_title = title.strip().strip('-')
                     else:
                         self._media_title = self._source
+
+                elif self._state == STATE_PLAYING and self._media_uri and int(player_status['totlen']) > 0 and not self._snapshot_active:
+                    self._get_playerstatus_metadata(player_status)
 
                 elif self._state == STATE_PLAYING and self._media_uri and int(player_status['totlen']) <= 0 and not self._snapshot_active:
                     if self._ice_skip_throt:
