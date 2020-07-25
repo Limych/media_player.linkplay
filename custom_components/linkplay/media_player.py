@@ -161,7 +161,7 @@ class LinkPlayDevice(MediaPlayerEntity):
         self._icon = ICON_DEFAULT
         self._state = STATE_UNAVAILABLE
         self._volume = 0
-        self._fadevol = True
+        self._fadevol = False
         self._source = None
         self._prev_source = None
         if sources is not None and sources != {}:
@@ -995,6 +995,9 @@ class LinkPlayDevice(MediaPlayerEntity):
 
     def snapshot(self, switchinput):
         """Snapshot the current input source and the volume level of it """
+        if self._state == STATE_UNAVAILABLE:
+            return
+
         if not self._slave_mode:
             self._snapshot_active = True
             self._snap_source = self._source
@@ -1023,7 +1026,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                             player_status = json.loads(player_api_result)
                             self._snap_volume = int(player_status['vol'])
                         except ValueError:
-                            _LOGGER.warning("REST result could not be parsed as JSON: %s, %s", self.entity_id, self._name)
+                            _LOGGER.warning("Erroneous JSON during snapshot volume reading: %s, %s", self.entity_id, self._name)
                             self._snap_volume = 0
                     else:
                         self._snap_volume = 0
@@ -1038,6 +1041,9 @@ class LinkPlayDevice(MediaPlayerEntity):
 
 
     def restore(self):
+        if self._state == STATE_UNAVAILABLE:
+            return
+
         """Restore the current input source and the volume level of it """
         if not self._slave_mode:
             _LOGGER.warning("Player %s current source: %s, restoring volume: %s, and source to: %s", self.entity_id, self._source, self._snap_volume, self._snap_source)
@@ -1162,8 +1168,8 @@ class LinkPlayDevice(MediaPlayerEntity):
             import unicodedata
             artmed = unicodedata.normalize('NFKD', str(self._media_artist) + str(self._media_title)).lower()
             artmedd = u"".join([c for c in artmed if not unicodedata.combining(c)])
-            if artmedd.find(self._icecast_name.lower()) != -1:
-                # don't trigger new track flag for icecast streams where track name contains station name; save some energy by not quering last.fm with this
+            if artmedd.find(self._icecast_name.lower()) != -1 or artmedd.find(self._source.lower()) != -1:
+                # don't trigger new track flag for icecast streams where track name contains station name or source name; save some energy by not quering last.fm with this
                 self._media_image_url = None
                 return False
 
@@ -1491,11 +1497,17 @@ class LinkPlayDevice(MediaPlayerEntity):
         try:
             if plr_stat['uri'] != "":
                 rootdir = ROOTDIR_USB
-                self._trackc = str(bytearray.fromhex(plr_stat['uri']).decode('utf-8')).replace(rootdir, '')
+                try:
+                    self._trackc = str(bytearray.fromhex(plr_stat['uri']).decode('utf-8')).replace(rootdir, '')
+                except ValueError:
+                    self._trackc = plr_stat['uri'].replace(rootdir, '')
         except KeyError:
             pass
         if plr_stat['Title'] != '':
-            title = str(bytearray.fromhex(plr_stat['Title']).decode('utf-8'))
+            try:
+                title = str(bytearray.fromhex(plr_stat['Title']).decode('utf-8'))
+            except ValueError:
+                title = plr_stat['Title']
             if title.lower() != 'unknown':
                 self._media_title = title
                 if self._trackc == None:
@@ -1503,13 +1515,19 @@ class LinkPlayDevice(MediaPlayerEntity):
             else:
                 self._media_title = None
         if plr_stat['Artist'] != '':
-            artist = str(bytearray.fromhex(plr_stat['Artist']).decode('utf-8'))
+            try:
+                artist = str(bytearray.fromhex(plr_stat['Artist']).decode('utf-8'))
+            except ValueError:
+                artist = plr_stat['Artist']
             if artist.lower() != 'unknown':
                 self._media_artist = artist
             else:
                 self._media_artist = None
         if plr_stat['Album'] != '':
-            album = str(bytearray.fromhex(plr_stat['Album']).decode('utf-8'))
+            try:
+                album = str(bytearray.fromhex(plr_stat['Album']).decode('utf-8'))
+            except ValueError:
+                album = plr_stat['Album']
             if album.lower() != 'unknown':
                 self._media_album = album
             else:
@@ -1570,7 +1588,7 @@ class LinkPlayDevice(MediaPlayerEntity):
         try:
             player_status = json.loads(player_api_result)
         except ValueError:
-            _LOGGER.warning("REST result could not be parsed as JSON: %s, %s", self.entity_id, self._name)
+            _LOGGER.warning("Erroneous JSON during update player_status: %s, %s", self.entity_id, self._name)
             return
 
         if isinstance(player_status, dict):
@@ -1582,7 +1600,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                     try:
                         device_status = json.loads(device_api_result)
                     except ValueError:
-                        _LOGGER.debug("Erroneous JSON: %s, %s", self.entity_id, device_api_result)
+                        _LOGGER.debug("Erroneous JSON during first update: %s, %s", self.entity_id, device_api_result)
                         device_status = None
                     if isinstance(device_status, dict):
                         if self._state == STATE_UNAVAILABLE:
@@ -1666,7 +1684,10 @@ class LinkPlayDevice(MediaPlayerEntity):
 
             try:
                 if self._playing_stream and player_status['uri'] != "":
-                    self._media_uri = str(bytearray.fromhex(player_status['uri']).decode('utf-8'))
+                    try:
+                        self._media_uri = str(bytearray.fromhex(player_status['uri']).decode('utf-8'))
+                    except ValueError:
+                        self._media_uri = player_status['uri']
             except KeyError:
                 pass
 
@@ -1712,13 +1733,20 @@ class LinkPlayDevice(MediaPlayerEntity):
                 self._media_title = self._source
 
             if self._playing_spotify:
-                self._state = STATE_PLAYING
+                #self._state = STATE_PLAYING
                 self._update_via_upnp()
 
             elif self._playing_webplaylist:
                 self._update_via_upnp()
 
             else:
+                if self._state not in [STATE_PLAYING, STATE_PAUSED]:
+                    self._media_title = None
+                    self._media_artist = None
+                    self._media_album = None
+                    self._media_image_url = None
+                    self._icecast_name = None
+                                
                 if self._playing_localfile and self._state in [STATE_PLAYING, STATE_PAUSED]:
                     self._get_playerstatus_metadata(player_status)
                     
@@ -1755,7 +1783,7 @@ class LinkPlayDevice(MediaPlayerEntity):
             self._media_prev_title = self._media_title
 
         else:
-            _LOGGER.warning("JSON A result was not a dictionary: %s, %s", self.entity_id, self._name)
+            _LOGGER.warning("Erroneous JSON during update and process player_status: %s, %s", self.entity_id, self._name)
 
         # Get multiroom slave information #
         self._lpapi.call('GET', 'multiroom:getSlaveList')
@@ -1769,8 +1797,7 @@ class LinkPlayDevice(MediaPlayerEntity):
         try:
             slave_list = json.loads(slave_list)
         except ValueError:
-            # _LOGGER.warning("REST result could not be parsed as JSON: %s, %s", self.entity_id, self._name)
-            _LOGGER.debug("Erroneous JSON: %s, %s", self.entity_id, slave_list)
+            _LOGGER.debug("Erroneous JSON during slave list parsing: %s, %s", self.entity_id, self._name)
             slave_list = None
             self._slave_list = None
             self._multiroom_group = []
@@ -1808,7 +1835,7 @@ class LinkPlayDevice(MediaPlayerEntity):
                                 device.set_multiroom_group(self._multiroom_group)
 
         else:
-            _LOGGER.warning("JSON B result was not a dictionary: %s, %s", self.entity_id, self._name)
+            _LOGGER.warning("Erroneous JSON during slave list parsing and processing: %s, %s", self.entity_id, self._name)
 
         return True
 
